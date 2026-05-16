@@ -6,5 +6,6 @@ enum class MovieCategory(val displayName: String) {
     COMEDY("Comedy"),
     ACTION("Action"),
     ROMANCE("Romance"),
-    SCIFI("Sci-Fi")
+    SCIFI("Sci-Fi"),
+    ANIME("Anime")
 }

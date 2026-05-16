@@ -2,9 +2,10 @@ package com.example.movielist.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +21,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -33,22 +36,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.movielist.data.model.Movie
 import com.example.movielist.ui.components.AnimatedIconButton
 import com.example.movielist.ui.utils.shortOverview
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -65,7 +67,7 @@ fun MovieDetailsScreen(
     var dragOffset by remember(movie.id) { mutableFloatStateOf(0f) }
 
     val shortText = shortOverview(movie.overview)
-    val needsDots = movie.overview.length > shortText.length
+    val needsExpansion = movie.overview.length > shortText.length
     val swipeThreshold = 220f
 
     Column(
@@ -75,7 +77,10 @@ fun MovieDetailsScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -95,18 +100,16 @@ fun MovieDetailsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        AsyncImage(
-            model = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" },
-            contentDescription = movie.title,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(460.dp)
                 .offset { IntOffset(dragOffset.roundToInt(), 0) }
                 .graphicsLayer {
                     rotationZ = dragOffset / 35f
-                    alpha = 1f - (kotlin.math.abs(dragOffset) / 900f)
+                    alpha = 1f - (abs(dragOffset) / 900f)
                 }
                 .pointerInput(movie.id) {
                     detectHorizontalDragGestures(
@@ -122,64 +125,102 @@ fun MovieDetailsScreen(
                         }
                     )
                 }
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.DarkGray),
-            contentScale = ContentScale.Crop
-        )
+        ) {
+            AsyncImage(
+                model = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" },
+                contentDescription = movie.title,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.DarkGray),
+                contentScale = ContentScale.Crop
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .align(Alignment.BottomCenter)
+                    .clip(
+                        RoundedCornerShape(
+                            bottomStart = 28.dp,
+                            bottomEnd = 28.dp
+                        )
+                    )
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.35f)
+                            )
+                        )
+                    )
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-10).dp),
+                horizontalArrangement = Arrangement.spacedBy(90.dp)
+            ) {
+                AnimatedIconButton(
+                    icon = Icons.Default.ThumbDown,
+                    color = if (isDisliked) Color(0xFFB00020) else Color(0xFF2C2C2C),
+                    onClick = onDislike
+                )
+
+                AnimatedIconButton(
+                    icon = Icons.Default.ThumbUp,
+                    color = if (isLiked) Color(0xFF00A86B) else Color(0xFFE50914),
+                    onClick = onLike
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = movie.title,
             style = MaterialTheme.typography.headlineMedium,
-            color = Color.White
+            color = Color.White,
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        if (expanded) {
-            Text(
-                text = movie.overview.ifBlank { "No description available." },
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.LightGray
-            )
-        } else {
-            Text(
-                text = buildAnnotatedString {
-                    append(if (needsDots) shortText.removeSuffix("...").trimEnd() else shortText)
-                    if (needsDots) {
-                        withStyle(style = SpanStyle(color = Color(0xFFE50914))) {
-                            append("...")
-                        }
-                    }
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.LightGray,
-                modifier = Modifier.pointerInput(movie.id) {
-                    detectTapGestures {
-                        if (needsDots) expanded = true
-                    }
+        Text(
+            text = if (expanded) movie.overview.ifBlank { "No description available." } else shortText,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.LightGray,
+            maxLines = if (expanded) Int.MAX_VALUE else 5
+        )
+
+        if (!expanded && needsExpansion) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(
+                    onClick = { expanded = true },
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.textButtonColors(
+                        containerColor = Color(0xFFE50914)
+                    ),
+                    contentPadding = PaddingValues(
+                        horizontal = 14.dp,
+                        vertical = 2.dp
+                    )
+                ) {
+                    Text(
+                        text = "read more",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
                 }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            AnimatedIconButton(
-                icon = Icons.Default.ThumbDown,
-                color = if (isDisliked) Color(0xFFB00020) else Color(0xFF2C2C2C),
-                onClick = onDislike
-            )
-
-            AnimatedIconButton(
-                icon = Icons.Default.ThumbUp,
-                color = if (isLiked) Color(0xFF00A86B) else Color(0xFFE50914),
-                onClick = onLike
-            )
+            }
         }
     }
 }

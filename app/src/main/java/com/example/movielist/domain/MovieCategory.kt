@@ -4,10 +4,10 @@ enum class MovieCategory(
     val displayName: String,
     val genreId: Int?
 ) {
-    RECOMMENDED("Recommended", null),
-    POPULAR("Popular Movies", null),
-    COMEDY("Comedy", 35),
-    ACTION("Action", 28),
-    ROMANCE("Romance", 10749),
-    SCIFI("Sci-Fi", 878)
+    RECOMMENDED("recommended", null),
+    POPULAR("popular", null),
+    COMEDY("comedy", 35),
+    ACTION("action", 28),
+    ROMANCE("romance", 10749),
+    SCIFI("sci-fi", 878)
 }

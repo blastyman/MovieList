@@ -323,7 +323,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Recommended for you",
+            text = "recommended for you",
             style = MaterialTheme.typography.titleLarge,
             color = Color.White
         )

@@ -46,7 +46,7 @@ fun MovieSwipeScreen(token: String) {
             MovieCategory.ACTION to 0,
             MovieCategory.ROMANCE to 0,
             MovieCategory.SCIFI to 0,
-            MovieCategory.ANIME to 0
+            MovieCategory.ANIMATED to 0
         )
     }
 
@@ -63,19 +63,28 @@ fun MovieSwipeScreen(token: String) {
     }
 
     val categoryMovies = remember(movies) {
-        if (movies.isEmpty()) {
-            emptyMap()
-        } else {
-            mapOf(
-                MovieCategory.RECOMMENDED to movies,
-                MovieCategory.POPULAR to movies,
-                MovieCategory.COMEDY to movies.shuffled(),
-                MovieCategory.ACTION to movies.shuffled(),
-                MovieCategory.ROMANCE to movies.shuffled(),
-                MovieCategory.SCIFI to movies.shuffled(),
-                MovieCategory.ANIME to movies.shuffled()
-            )
+
+        fun moviesWithGenre(genreId: Int): List<Movie> {
+            return movies.filter { genreId in it.genre_ids }
         }
+
+        mapOf(
+            MovieCategory.RECOMMENDED to movies.shuffled(),
+
+            MovieCategory.POPULAR to movies,
+
+            MovieCategory.COMEDY to moviesWithGenre(35),
+
+            MovieCategory.ACTION to moviesWithGenre(28),
+
+            MovieCategory.ROMANCE to moviesWithGenre(10749),
+
+            MovieCategory.SCIFI to moviesWithGenre(878),
+
+            MovieCategory.ANIMATED to movies.filter {
+                16 in it.genre_ids
+            }
+        )
     }
 
     fun moveToNextMovie(category: MovieCategory) {
@@ -205,7 +214,7 @@ fun HomeScreen(
         MovieSection(MovieCategory.ACTION, categoryMovies[MovieCategory.ACTION].orEmpty(), onMovieClick)
         MovieSection(MovieCategory.ROMANCE, categoryMovies[MovieCategory.ROMANCE].orEmpty(), onMovieClick)
         MovieSection(MovieCategory.SCIFI, categoryMovies[MovieCategory.SCIFI].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.ANIME, categoryMovies[MovieCategory.ANIME].orEmpty(), onMovieClick)
+        MovieSection(MovieCategory.ANIMATED, categoryMovies[MovieCategory.ANIMATED].orEmpty(), onMovieClick)
     }
 }
 

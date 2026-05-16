@@ -3,7 +3,7 @@ package com.example.movielist
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.example.movielist.ui.screens.MovieSwipeScreen
+import com.example.movielist.ui.screens.HomeScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MovieSwipeScreen(tmdbToken)
+            HomeScreen(tmdbToken)
         }
     }
 }

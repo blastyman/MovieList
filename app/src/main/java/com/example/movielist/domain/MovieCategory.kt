@@ -9,5 +9,9 @@ enum class MovieCategory(
     COMEDY("comedy", 35),
     ACTION("action", 28),
     ROMANCE("romance", 10749),
-    SCIFI("sci-fi", 878)
+    SCIFI("sci-fi", 878),
+
+
+    LIKED("liked", null),
+    DISLIKED("disliked", null)
 }

@@ -115,8 +115,8 @@ fun MovieDetailsScreen(
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             when {
-                                dragOffset > swipeThreshold -> onLike()
-                                dragOffset < -swipeThreshold -> onDislike()
+                                dragOffset > swipeThreshold -> onDislike()
+                                dragOffset < -swipeThreshold -> onLike()
                             }
                             dragOffset = 0f
                         },

@@ -86,7 +86,7 @@ fun MovieListsScreen(
             }
 
             Text(
-                text = "Lists",
+                text = "lists",
 
                 style =
                     MaterialTheme.typography.headlineLarge.copy(

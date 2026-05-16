@@ -9,7 +9,7 @@ class MovieRepository {
     suspend fun getMovies(token: String): List<Movie> = withContext(Dispatchers.IO) {
         val allMovies = mutableListOf<Movie>()
 
-        repeat(5) {
+        repeat(3) {
             val randomPage = (1..30).random()
             val response = RetrofitInstance.api.getMovies(
                 token = token,

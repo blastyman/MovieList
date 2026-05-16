@@ -11,11 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -130,15 +133,33 @@ fun MovieListsScreen(
                 )
             ) {
 
-                Text(
-                    text = "liked",
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
 
-                    color =
-                        if (selectedFilter == MovieListFilter.LIKED)
-                            Color.White
-                        else
-                            Color.Gray
-                )
+                    Icon(
+                        imageVector = Icons.Default.ThumbUp,
+                        contentDescription = null,
+
+                        tint =
+                            if (selectedFilter == MovieListFilter.LIKED)
+                                Color.White
+                            else
+                                Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Text(
+                        text = "liked",
+
+                        color =
+                            if (selectedFilter == MovieListFilter.LIKED)
+                                Color.White
+                            else
+                                Color.Gray
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.padding(6.dp))
@@ -168,15 +189,33 @@ fun MovieListsScreen(
                 )
             ) {
 
-                Text(
-                    text = "disliked",
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
 
-                    color =
-                        if (selectedFilter == MovieListFilter.DISLIKED)
-                            Color.White
-                        else
-                            Color.Gray
-                )
+                    Icon(
+                        imageVector = Icons.Default.ThumbDown,
+                        contentDescription = null,
+
+                        tint =
+                            if (selectedFilter == MovieListFilter.DISLIKED)
+                                Color.White
+                            else
+                                Color.Gray
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Text(
+                        text = "disliked",
+
+                        color =
+                            if (selectedFilter == MovieListFilter.DISLIKED)
+                                Color.White
+                            else
+                                Color.Gray
+                    )
+                }
             }
         }
 

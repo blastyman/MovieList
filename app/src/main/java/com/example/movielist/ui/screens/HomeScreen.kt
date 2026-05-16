@@ -5,13 +5,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -119,6 +124,7 @@ fun HomeScreen(token: String) {
 
                 DrawerItem(
                     text = "home",
+                    icon = Icons.Default.Home,
                     selected = currentSection == AppSection.HOME,
                     onClick = {
                         currentSection = AppSection.HOME
@@ -128,6 +134,7 @@ fun HomeScreen(token: String) {
 
                 DrawerItem(
                     text = "lists",
+                    icon = Icons.Default.Folder,
                     selected = currentSection == AppSection.LISTS,
                     onClick = {
                         currentSection = AppSection.LISTS
@@ -137,6 +144,7 @@ fun HomeScreen(token: String) {
 
                 DrawerItem(
                     text = "matches",
+                    icon = Icons.Default.Group,
                     selected = currentSection == AppSection.MATCHES,
                     onClick = {
                         currentSection = AppSection.MATCHES
@@ -146,6 +154,7 @@ fun HomeScreen(token: String) {
 
                 DrawerItem(
                     text = "user",
+                    icon = Icons.Default.Person,
                     selected = currentSection == AppSection.USER,
                     onClick = {
                         currentSection = AppSection.USER
@@ -264,10 +273,18 @@ fun HomeScreen(token: String) {
 @Composable
 fun DrawerItem(
     text: String,
+    icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     NavigationDrawerItem(
+        icon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (selected) Color.White else Color.LightGray
+            )
+        },
         label = {
             Text(
                 text = text,
@@ -338,11 +355,22 @@ fun HomeContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = "recommended for you",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color.White
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = MovieCategory.RECOMMENDED.icon,
+                contentDescription = null,
+                tint = Color(0xFFE50914),
+                modifier = Modifier.size(24.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = "recommended for you",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -373,11 +401,22 @@ fun MovieSection(
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    Text(
-        text = category.displayName,
-        style = MaterialTheme.typography.titleLarge,
-        color = Color.White
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = category.icon,
+            contentDescription = null,
+            tint = Color(0xFFE50914),
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Text(
+            text = category.displayName,
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.White
+        )
+    }
 
     Spacer(modifier = Modifier.height(12.dp))
 

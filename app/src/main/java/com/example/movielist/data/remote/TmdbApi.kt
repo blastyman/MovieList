@@ -9,6 +9,7 @@ interface TmdbApi {
     @GET("discover/movie")
     suspend fun getMovies(
         @Header("Authorization") token: String,
-        @Query("sort_by") sortBy: String = "popularity.desc"
+        @Query("sort_by") sortBy: String = "popularity.desc",
+        @Query("page") page: Int
     ): MovieResponse
 }

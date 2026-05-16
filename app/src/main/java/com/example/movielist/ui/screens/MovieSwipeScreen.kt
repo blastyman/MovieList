@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,15 +29,32 @@ data class SelectedMovieState(
 
 @Composable
 fun MovieSwipeScreen(token: String) {
+
     val repository = remember { MovieRepository() }
 
-    var movies by remember { mutableStateOf<List<Movie>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var selectedMovieState by remember { mutableStateOf<SelectedMovieState?>(null) }
+    var movies by remember {
+        mutableStateOf<List<Movie>>(emptyList())
+    }
 
-    val currentUser = remember { AppUser("User 1") }
-    val dislikedMovies = remember { mutableStateListOf<Int>() }
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var selectedMovieState by remember {
+        mutableStateOf<SelectedMovieState?>(null)
+    }
+
+    val currentUser = remember {
+        AppUser("User 1")
+    }
+
+    val dislikedMovies = remember {
+        mutableStateListOf<Int>()
+    }
 
     val categoryIndexes = remember {
         mutableStateMapOf(
@@ -52,65 +70,100 @@ fun MovieSwipeScreen(token: String) {
 
     LaunchedEffect(Unit) {
         try {
+
             isLoading = true
-            val randomPage = (1..20).random()
-            movies = repository.getMovies(token = token, page = randomPage).shuffled()
+
+            movies = repository.getMovies(token = token)
+
             isLoading = false
+
         } catch (e: Exception) {
+
             errorMessage = e.message
             isLoading = false
         }
     }
 
     val categoryMovies = remember(movies) {
+        if (movies.isEmpty()) {
+            emptyMap()
+        } else {
+            val usedMovieIds = mutableSetOf<Int>()
 
-        fun moviesWithGenre(genreId: Int): List<Movie> {
-            return movies.filter { genreId in it.genre_ids }
-        }
+            fun moviesForCategory(category: MovieCategory): List<Movie> {
+                val genreId = category.genreId ?: return emptyList()
 
-        mapOf(
-            MovieCategory.RECOMMENDED to movies.shuffled(),
+                val filteredMovies = movies.filter { movie ->
+                    genreId in movie.genre_ids && movie.id !in usedMovieIds
+                }.shuffled()
 
-            MovieCategory.POPULAR to movies,
+                usedMovieIds.addAll(filteredMovies.map { it.id })
 
-            MovieCategory.COMEDY to moviesWithGenre(35),
-
-            MovieCategory.ACTION to moviesWithGenre(28),
-
-            MovieCategory.ROMANCE to moviesWithGenre(10749),
-
-            MovieCategory.SCIFI to moviesWithGenre(878),
-
-            MovieCategory.ANIMATED to movies.filter {
-                16 in it.genre_ids
+                return filteredMovies
             }
-        )
+
+            mapOf(
+                MovieCategory.RECOMMENDED to movies.shuffled(),
+                MovieCategory.POPULAR to movies,
+                MovieCategory.COMEDY to moviesForCategory(MovieCategory.COMEDY),
+                MovieCategory.ACTION to moviesForCategory(MovieCategory.ACTION),
+                MovieCategory.ROMANCE to moviesForCategory(MovieCategory.ROMANCE),
+                MovieCategory.SCIFI to moviesForCategory(MovieCategory.SCIFI),
+                MovieCategory.ANIMATED to moviesForCategory(MovieCategory.ANIMATED)
+            )
+        }
     }
 
     fun moveToNextMovie(category: MovieCategory) {
+
         val list = categoryMovies[category].orEmpty()
+
         if (list.isNotEmpty()) {
-            val nextIndex = ((categoryIndexes[category] ?: 0) + 1) % list.size
+
+            val nextIndex =
+                ((categoryIndexes[category] ?: 0) + 1) % list.size
+
             categoryIndexes[category] = nextIndex
-            selectedMovieState = SelectedMovieState(category, list[nextIndex])
+
+            selectedMovieState = SelectedMovieState(
+                category,
+                list[nextIndex]
+            )
         }
     }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF101010)) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF101010)
+    ) {
+
         when {
+
             isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }
 
             errorMessage != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "Error: $errorMessage", color = Color.White)
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Error: $errorMessage",
+                        color = Color.White
+                    )
                 }
             }
 
             selectedMovieState != null -> {
+
                 val state = selectedMovieState!!
 
                 MovieDetailsScreen(
@@ -118,40 +171,87 @@ fun MovieSwipeScreen(token: String) {
                     movie = state.movie,
                     isLiked = state.movie.id in currentUser.likedMovies,
                     isDisliked = state.movie.id in dislikedMovies,
-                    onBack = { selectedMovieState = null },
+
+                    onBack = {
+                        selectedMovieState = null
+                    },
+
                     onLike = {
+
                         currentUser.likedMovies.add(state.movie.id)
+
                         dislikedMovies.remove(state.movie.id)
+
                         moveToNextMovie(state.category)
                     },
+
                     onDislike = {
+
                         currentUser.likedMovies.remove(state.movie.id)
-                        if (state.movie.id !in dislikedMovies) dislikedMovies.add(state.movie.id)
+
+                        if (state.movie.id !in dislikedMovies) {
+                            dislikedMovies.add(state.movie.id)
+                        }
+
                         moveToNextMovie(state.category)
                     }
                 )
             }
 
             movies.isNotEmpty() -> {
+
                 HomeScreen(
                     categoryMovies = categoryMovies,
                     categoryIndexes = categoryIndexes,
-                    onMovieClick = { category, movie -> selectedMovieState = SelectedMovieState(category, movie) },
-                    onLike = { category ->
-                        val list = categoryMovies[category].orEmpty()
-                        val index = categoryIndexes[category] ?: 0
-                        val movie = list[index % list.size]
-                        currentUser.likedMovies.add(movie.id)
-                        dislikedMovies.remove(movie.id)
-                        categoryIndexes[category] = (index + 1) % list.size
+
+                    onMovieClick = { category, movie ->
+
+                        selectedMovieState =
+                            SelectedMovieState(category, movie)
                     },
-                    onDislike = { category ->
+
+                    onLike = { category ->
+
                         val list = categoryMovies[category].orEmpty()
-                        val index = categoryIndexes[category] ?: 0
-                        val movie = list[index % list.size]
-                        currentUser.likedMovies.remove(movie.id)
-                        if (movie.id !in dislikedMovies) dislikedMovies.add(movie.id)
-                        categoryIndexes[category] = (index + 1) % list.size
+
+                        if (list.isNotEmpty()) {
+
+                            val index =
+                                categoryIndexes[category] ?: 0
+
+                            val movie =
+                                list[index % list.size]
+
+                            currentUser.likedMovies.add(movie.id)
+
+                            dislikedMovies.remove(movie.id)
+
+                            categoryIndexes[category] =
+                                (index + 1) % list.size
+                        }
+                    },
+
+                    onDislike = { category ->
+
+                        val list = categoryMovies[category].orEmpty()
+
+                        if (list.isNotEmpty()) {
+
+                            val index =
+                                categoryIndexes[category] ?: 0
+
+                            val movie =
+                                list[index % list.size]
+
+                            currentUser.likedMovies.remove(movie.id)
+
+                            if (movie.id !in dislikedMovies) {
+                                dislikedMovies.add(movie.id)
+                            }
+
+                            categoryIndexes[category] =
+                                (index + 1) % list.size
+                        }
                     }
                 )
             }
@@ -162,14 +262,22 @@ fun MovieSwipeScreen(token: String) {
 @Composable
 fun HomeScreen(
     categoryMovies: Map<MovieCategory, List<Movie>>,
-    categoryIndexes: Map<MovieCategory, Int>,
+    categoryIndexes: SnapshotStateMap<MovieCategory, Int>,
     onMovieClick: (MovieCategory, Movie) -> Unit,
     onLike: (MovieCategory) -> Unit,
     onDislike: (MovieCategory) -> Unit
 ) {
-    val recommended = categoryMovies[MovieCategory.RECOMMENDED].orEmpty()
-    val recommendedIndex = categoryIndexes[MovieCategory.RECOMMENDED] ?: 0
-    val recommendedMovie = recommended[recommendedIndex % recommended.size]
+
+    val recommendedMovies =
+        categoryMovies[MovieCategory.RECOMMENDED].orEmpty()
+
+    if (recommendedMovies.isEmpty()) return
+
+    val recommendedIndex =
+        categoryIndexes[MovieCategory.RECOMMENDED] ?: 0
+
+    val recommendedMovie =
+        recommendedMovies[recommendedIndex % recommendedMovies.size]
 
     Column(
         modifier = Modifier
@@ -178,15 +286,20 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
+
         Text(
             text = "movielist",
+
             style = MaterialTheme.typography.displayLarge.copy(
                 fontStyle = FontStyle.Italic,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.SansSerif
             ),
+
             color = Color(0xFFE50914),
+
             modifier = Modifier.fillMaxWidth(),
+
             textAlign = TextAlign.Center
         )
 
@@ -202,19 +315,60 @@ fun HomeScreen(
 
         RecommendedMovieCard(
             movie = recommendedMovie,
-            onClick = { onMovieClick(MovieCategory.RECOMMENDED, recommendedMovie) },
-            onLike = { onLike(MovieCategory.RECOMMENDED) },
-            onDislike = { onDislike(MovieCategory.RECOMMENDED) }
+
+            onClick = {
+                onMovieClick(
+                    MovieCategory.RECOMMENDED,
+                    recommendedMovie
+                )
+            },
+
+            onLike = {
+                onLike(MovieCategory.RECOMMENDED)
+            },
+
+            onDislike = {
+                onDislike(MovieCategory.RECOMMENDED)
+            }
         )
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        MovieSection(MovieCategory.POPULAR, categoryMovies[MovieCategory.POPULAR].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.COMEDY, categoryMovies[MovieCategory.COMEDY].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.ACTION, categoryMovies[MovieCategory.ACTION].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.ROMANCE, categoryMovies[MovieCategory.ROMANCE].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.SCIFI, categoryMovies[MovieCategory.SCIFI].orEmpty(), onMovieClick)
-        MovieSection(MovieCategory.ANIMATED, categoryMovies[MovieCategory.ANIMATED].orEmpty(), onMovieClick)
+        MovieSection(
+            MovieCategory.POPULAR,
+            categoryMovies[MovieCategory.POPULAR].orEmpty(),
+            onMovieClick
+        )
+
+        MovieSection(
+            MovieCategory.COMEDY,
+            categoryMovies[MovieCategory.COMEDY].orEmpty(),
+            onMovieClick
+        )
+
+        MovieSection(
+            MovieCategory.ACTION,
+            categoryMovies[MovieCategory.ACTION].orEmpty(),
+            onMovieClick
+        )
+
+        MovieSection(
+            MovieCategory.ROMANCE,
+            categoryMovies[MovieCategory.ROMANCE].orEmpty(),
+            onMovieClick
+        )
+
+        MovieSection(
+            MovieCategory.SCIFI,
+            categoryMovies[MovieCategory.SCIFI].orEmpty(),
+            onMovieClick
+        )
+
+        MovieSection(
+            MovieCategory.ANIMATED,
+            categoryMovies[MovieCategory.ANIMATED].orEmpty(),
+            onMovieClick
+        )
     }
 }
 
@@ -224,6 +378,9 @@ fun MovieSection(
     movies: List<Movie>,
     onMovieClick: (MovieCategory, Movie) -> Unit
 ) {
+
+    if (movies.isEmpty()) return
+
     Spacer(modifier = Modifier.height(24.dp))
 
     Text(
@@ -234,11 +391,19 @@ fun MovieSection(
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+    Row(
+        modifier = Modifier.horizontalScroll(
+            rememberScrollState()
+        )
+    ) {
+
         movies.take(12).forEach { movie ->
+
             MoviePosterItem(
                 movie = movie,
-                onClick = { onMovieClick(category, movie) }
+                onClick = {
+                    onMovieClick(category, movie)
+                }
             )
 
             Spacer(modifier = Modifier.width(12.dp))

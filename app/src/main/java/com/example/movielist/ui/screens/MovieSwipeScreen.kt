@@ -82,8 +82,7 @@ fun MovieSwipeScreen(token: String) {
             MovieCategory.COMEDY to 0,
             MovieCategory.ACTION to 0,
             MovieCategory.ROMANCE to 0,
-            MovieCategory.SCIFI to 0,
-            MovieCategory.ANIMATED to 0
+            MovieCategory.SCIFI to 0
         )
     }
 
@@ -127,8 +126,7 @@ fun MovieSwipeScreen(token: String) {
                 MovieCategory.COMEDY to moviesForCategory(MovieCategory.COMEDY),
                 MovieCategory.ACTION to moviesForCategory(MovieCategory.ACTION),
                 MovieCategory.ROMANCE to moviesForCategory(MovieCategory.ROMANCE),
-                MovieCategory.SCIFI to moviesForCategory(MovieCategory.SCIFI),
-                MovieCategory.ANIMATED to moviesForCategory(MovieCategory.ANIMATED)
+                MovieCategory.SCIFI to moviesForCategory(MovieCategory.SCIFI)
             )
         }
     }
@@ -380,12 +378,6 @@ fun HomeScreen(
         MovieSection(
             MovieCategory.SCIFI,
             categoryMovies[MovieCategory.SCIFI].orEmpty(),
-            onMovieClick
-        )
-
-        MovieSection(
-            MovieCategory.ANIMATED,
-            categoryMovies[MovieCategory.ANIMATED].orEmpty(),
             onMovieClick
         )
     }

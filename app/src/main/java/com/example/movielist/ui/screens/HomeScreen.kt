@@ -1,7 +1,9 @@
 package com.example.movielist.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -96,7 +98,13 @@ fun HomeScreen(token: String) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.70f)),
+                .background(Color.Black.copy(alpha = 0.70f))
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    // consume clicks while popup is visible
+                },
             contentAlignment = Alignment.Center
         ) {
             Card(

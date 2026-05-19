@@ -1,6 +1,9 @@
 package com.example.movielist.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,11 +23,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,8 +48,40 @@ fun RecommendedMovieCard(
     onLike: () -> Unit,
     onDislike: () -> Unit
 ) {
+    var offsetX by remember(movie.id) { mutableFloatStateOf(0f) }
+
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        label = "recommendedCardOffset"
+    )
+
+    val rotation by animateFloatAsState(
+        targetValue = offsetX / 40f,
+        label = "recommendedCardRotation"
+    )
+
     Card(
-        modifier = pressAnimatedModifier(onClick).fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationX = animatedOffsetX
+                rotationZ = rotation
+            }
+            .pointerInput(movie.id) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, dragAmount ->
+                        offsetX += dragAmount
+                    },
+                    onDragEnd = {
+                        when {
+                            offsetX > 300f -> onLike()
+                            offsetX < -300f -> onDislike()
+                        }
+                        offsetX = 0f
+                    }
+                )
+            }
+            .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1C))
     ) {

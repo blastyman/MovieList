@@ -49,8 +49,15 @@ fun HomeScreen(token: String) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    val currentUser = remember { AppUser("User 1") }
-    val dislikedMovies = remember { mutableStateListOf<Int>() }
+    val users = remember {
+        mutableStateListOf(
+            AppUser("Tester 67"),
+            AppUser("Tester 69"),
+        )
+    }
+
+    var selectedUserIndex by remember { mutableStateOf(0) }
+    val currentUser = users[selectedUserIndex]
 
     val categoryIndexes = remember {
         mutableStateMapOf(
@@ -82,11 +89,9 @@ fun HomeScreen(token: String) {
 
             fun moviesForCategory(category: MovieCategory): List<Movie> {
                 val genreId = category.genreId ?: return emptyList()
-
                 val filteredMovies = movies.filter { movie ->
                     genreId in movie.genre_ids && movie.id !in usedMovieIds
                 }.shuffled()
-
                 usedMovieIds.addAll(filteredMovies.map { it.id })
                 return filteredMovies
             }
@@ -102,9 +107,22 @@ fun HomeScreen(token: String) {
         }
     }
 
+    fun likeMovie(movieId: Int) {
+        if (movieId !in currentUser.likedMovies) {
+            currentUser.likedMovies.add(movieId)
+        }
+        currentUser.dislikedMovies.remove(movieId)
+    }
+
+    fun dislikeMovie(movieId: Int) {
+        currentUser.likedMovies.remove(movieId)
+        if (movieId !in currentUser.dislikedMovies) {
+            currentUser.dislikedMovies.add(movieId)
+        }
+    }
+
     fun moveToNextMovie(category: MovieCategory) {
         val list = categoryMovies[category].orEmpty()
-
         if (list.isNotEmpty()) {
             val nextIndex = ((categoryIndexes[category] ?: 0) + 1) % list.size
             categoryIndexes[category] = nextIndex
@@ -122,45 +140,25 @@ fun HomeScreen(token: String) {
             ) {
                 Spacer(modifier = Modifier.height(36.dp))
 
-                DrawerItem(
-                    text = "home",
-                    icon = Icons.Default.Home,
-                    selected = currentSection == AppSection.HOME,
-                    onClick = {
-                        currentSection = AppSection.HOME
-                        scope.launch { drawerState.close() }
-                    }
-                )
+                DrawerItem("home", Icons.Default.Home, currentSection == AppSection.HOME) {
+                    currentSection = AppSection.HOME
+                    scope.launch { drawerState.close() }
+                }
 
-                DrawerItem(
-                    text = "lists",
-                    icon = Icons.Default.Folder,
-                    selected = currentSection == AppSection.LISTS,
-                    onClick = {
-                        currentSection = AppSection.LISTS
-                        scope.launch { drawerState.close() }
-                    }
-                )
+                DrawerItem("lists", Icons.Default.Folder, currentSection == AppSection.LISTS) {
+                    currentSection = AppSection.LISTS
+                    scope.launch { drawerState.close() }
+                }
 
-                DrawerItem(
-                    text = "matches",
-                    icon = Icons.Default.Group,
-                    selected = currentSection == AppSection.MATCHES,
-                    onClick = {
-                        currentSection = AppSection.MATCHES
-                        scope.launch { drawerState.close() }
-                    }
-                )
+                DrawerItem("matches", Icons.Default.Group, currentSection == AppSection.MATCHES) {
+                    currentSection = AppSection.MATCHES
+                    scope.launch { drawerState.close() }
+                }
 
-                DrawerItem(
-                    text = "user",
-                    icon = Icons.Default.Person,
-                    selected = currentSection == AppSection.USER,
-                    onClick = {
-                        currentSection = AppSection.USER
-                        scope.launch { drawerState.close() }
-                    }
-                )
+                DrawerItem("user", Icons.Default.Person, currentSection == AppSection.USER) {
+                    currentSection = AppSection.USER
+                    scope.launch { drawerState.close() }
+                }
             }
         }
     ) {
@@ -188,16 +186,14 @@ fun HomeScreen(token: String) {
                         category = state.category.displayName,
                         movie = state.movie,
                         isLiked = state.movie.id in currentUser.likedMovies,
-                        isDisliked = state.movie.id in dislikedMovies,
+                        isDisliked = state.movie.id in currentUser.dislikedMovies,
                         onBack = { selectedMovieState = null },
                         onLike = {
-                            currentUser.likedMovies.add(state.movie.id)
-                            dislikedMovies.remove(state.movie.id)
+                            likeMovie(state.movie.id)
                             moveToNextMovie(state.category)
                         },
                         onDislike = {
-                            currentUser.likedMovies.remove(state.movie.id)
-                            if (state.movie.id !in dislikedMovies) dislikedMovies.add(state.movie.id)
+                            dislikeMovie(state.movie.id)
                             moveToNextMovie(state.category)
                         }
                     )
@@ -206,7 +202,7 @@ fun HomeScreen(token: String) {
                 currentSection == AppSection.LISTS -> {
                     MovieListsScreen(
                         likedMovies = movies.filter { it.id in currentUser.likedMovies },
-                        dislikedMovies = movies.filter { it.id in dislikedMovies },
+                        dislikedMovies = movies.filter { it.id in currentUser.dislikedMovies },
                         selectedFilter = selectedListFilter,
                         onFilterChange = { selectedListFilter = it },
                         onMenuClick = { scope.launch { drawerState.open() } },
@@ -224,9 +220,12 @@ fun HomeScreen(token: String) {
                 }
 
                 currentSection == AppSection.USER -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "User profile coming soon", color = Color.White)
-                    }
+                    UserScreen(
+                        users = users,
+                        selectedUserIndex = selectedUserIndex,
+                        onUserSelected = { selectedUserIndex = it },
+                        onMenuClick = { scope.launch { drawerState.open() } }
+                    )
                 }
 
                 movies.isNotEmpty() -> {
@@ -239,27 +238,19 @@ fun HomeScreen(token: String) {
                         },
                         onLike = { category ->
                             val list = categoryMovies[category].orEmpty()
-
                             if (list.isNotEmpty()) {
                                 val index = categoryIndexes[category] ?: 0
                                 val movie = list[index % list.size]
-                                currentUser.likedMovies.add(movie.id)
-                                dislikedMovies.remove(movie.id)
+                                likeMovie(movie.id)
                                 categoryIndexes[category] = (index + 1) % list.size
                             }
                         },
                         onDislike = { category ->
                             val list = categoryMovies[category].orEmpty()
-
                             if (list.isNotEmpty()) {
                                 val index = categoryIndexes[category] ?: 0
                                 val movie = list[index % list.size]
-                                currentUser.likedMovies.remove(movie.id)
-
-                                if (movie.id !in dislikedMovies) {
-                                    dislikedMovies.add(movie.id)
-                                }
-
+                                dislikeMovie(movie.id)
                                 categoryIndexes[category] = (index + 1) % list.size
                             }
                         }
@@ -315,7 +306,6 @@ fun HomeContent(
     onDislike: (MovieCategory) -> Unit
 ) {
     val recommendedMovies = categoryMovies[MovieCategory.RECOMMENDED].orEmpty()
-
     if (recommendedMovies.isEmpty()) return
 
     val recommendedIndex = categoryIndexes[MovieCategory.RECOMMENDED] ?: 0

@@ -1,4 +1,4 @@
-package com.example.movielist.ui.screens
+package com.example.movielist.ui.navigation
 
 enum class AppSection(val displayName: String) {
     HOME("home"),

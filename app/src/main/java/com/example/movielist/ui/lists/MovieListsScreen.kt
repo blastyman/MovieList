@@ -1,4 +1,4 @@
-package com.example.movielist.ui.screens
+package com.example.movielist.ui.lists
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -35,11 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.movielist.data.model.Movie
 import com.example.movielist.ui.components.MoviePosterItem
-
-enum class MovieListFilter {
-    LIKED,
-    DISLIKED
-}
 
 @Composable
 fun MovieListsScreen(

@@ -1,4 +1,4 @@
-package com.example.movielist.ui.screens
+package com.example.movielist.ui.user
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.movielist.domain.AppUser
+import com.example.movielist.domain.model.AppUser
 
 @Composable
 fun UserScreen(

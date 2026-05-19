@@ -1,4 +1,4 @@
-package com.example.movielist.domain
+package com.example.movielist.domain.model
 
 data class Match(
     val userName: String,

@@ -1,4 +1,4 @@
-package com.example.movielist.ui.screens
+package com.example.movielist.ui.details
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures

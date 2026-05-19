@@ -1,4 +1,4 @@
-package com.example.movielist.domain
+package com.example.movielist.domain.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*

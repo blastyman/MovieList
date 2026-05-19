@@ -74,8 +74,8 @@ fun RecommendedMovieCard(
                     },
                     onDragEnd = {
                         when {
-                            offsetX > 300f -> onLike()
-                            offsetX < -300f -> onDislike()
+                            offsetX > 300f -> onDislike()
+                            offsetX < -300f -> onLike()
                         }
                         offsetX = 0f
                     }

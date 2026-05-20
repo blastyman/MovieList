@@ -84,7 +84,7 @@ fun MovieListsScreen(
                 text = "lists",
 
                 style =
-                    MaterialTheme.typography.headlineLarge.copy(
+                    MaterialTheme.typography.displayLarge.copy(
                         fontStyle = FontStyle.Italic,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.SansSerif

@@ -23,6 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.movielist.domain.model.AppUser
 
@@ -53,7 +56,12 @@ fun UserScreen(
 
             Text(
                 text = "user",
-                style = MaterialTheme.typography.headlineLarge,
+                style =
+                    MaterialTheme.typography.displayLarge.copy(
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.SansSerif
+                    ),
                 color = Color(0xFFE50914),
                 modifier = Modifier.align(Alignment.Center)
             )

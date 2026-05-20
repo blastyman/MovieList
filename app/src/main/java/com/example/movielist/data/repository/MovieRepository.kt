@@ -10,13 +10,18 @@ class MovieRepository {
         val allMovies = mutableListOf<Movie>()
 
         repeat(3) {
-            val randomPage = (1..30).random()
-            val response = RetrofitInstance.api.getMovies(
-                token = token,
-                page = randomPage
-            )
+            try {
+                val randomPage = (1..30).random()
 
-            allMovies.addAll(response.results)
+                val response = RetrofitInstance.api.getMovies(
+                    token = token,
+                    page = randomPage
+                )
+
+                allMovies.addAll(response.results)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         allMovies.distinctBy { it.id }.shuffled()

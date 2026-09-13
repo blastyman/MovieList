@@ -4,7 +4,6 @@ import com.example.movielist.domain.model.AppUser
 import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
-import com.example.movielist.domain.service.MovieCatalog
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
 import com.example.movielist.ui.navigation.AppSection
@@ -21,6 +20,7 @@ data class HomeUiState(
     val currentSection: AppSection = AppSection.HOME,
     val listFilter: MovieListFilter = MovieListFilter.LIKED,
     val matchPopup: Match? = null,
+    val matches: List<Match> = emptyList(),
 ) {
     val currentUser: AppUser
         get() = users[selectedUserIndex]
@@ -30,7 +30,4 @@ data class HomeUiState(
 
     val dislikedMovies: List<Movie>
         get() = movies.filter { it.id in currentUser.dislikedMovieIds }
-
-    val matches: List<Match>
-        get() = MovieCatalog.findMatches(movies, users, selectedUserIndex)
 }

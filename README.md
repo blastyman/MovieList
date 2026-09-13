@@ -28,6 +28,7 @@ application is still recoverable from its APK.
 - `data/model`: TMDB response DTOs and conversion to domain models.
 - `data/remote`: Retrofit endpoints and HTTP client/authentication configuration.
 - `data/repository`: API-backed loading, partial failure handling, and deduplication.
+- `data/preferences`: DataStore-backed user rating persistence.
 - `domain/model`: immutable movie, user, match, and category models.
 - `domain/repository`: repository contract for loading movies.
 - `domain/service`: category grouping and mutual-match calculation.
@@ -40,9 +41,11 @@ UPPER_SNAKE_CASE. Compose functions retain their conventional PascalCase names.
 API snake_case names are mapped with Gson annotations at the data boundary.
 
 The ViewModel owns loading, selections, and immutable user updates. Composables
-render state and invoke callbacks. State survives activity recreation; user
-preferences remain in memory and reset when the process ends. Genre sections
-assign a movie to the first matching genre, preserving the original behavior.
+render state and invoke callbacks. State is exposed through `StateFlow`, while
+user ratings are persisted with DataStore and survive process restarts. Movie
+pages load concurrently and are cached in memory for five minutes. Genre
+sections assign a movie to the first matching genre, preserving the original
+behavior.
 
 ## Verification
 

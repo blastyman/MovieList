@@ -1,30 +1,40 @@
 package com.example.movielist.ui.home
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.movielist.BuildConfig
-import com.example.movielist.data.remote.TmdbClient
-import com.example.movielist.data.repository.TmdbMovieRepository
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
+import com.example.movielist.domain.repository.InMemoryUserPreferencesRepository
 import com.example.movielist.domain.repository.MovieRepository
+import com.example.movielist.domain.repository.UserPreferencesRepository
 import com.example.movielist.domain.service.MovieCatalog
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
 import com.example.movielist.ui.navigation.AppSection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import retrofit2.HttpException
 
-class HomeViewModel(private val repository: MovieRepository) : ViewModel() {
-    var uiState by mutableStateOf(HomeUiState())
-        private set
+class HomeViewModel(
+    private val repository: MovieRepository,
+    private val userPreferences: UserPreferencesRepository = InMemoryUserPreferencesRepository(),
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiStateFlow: StateFlow<HomeUiState> = _uiState.asStateFlow()
+    val uiState: HomeUiState
+        get() = _uiState.value
 
     private var loadingJob: Job? = null
+    private val saveMutex = Mutex()
 
     init {
         loadMovies()
@@ -34,59 +44,101 @@ class HomeViewModel(private val repository: MovieRepository) : ViewModel() {
         if (loadingJob?.isActive == true) return
         loadingJob =
             viewModelScope.launch {
-                uiState = uiState.copy(isLoading = true, errorMessage = null)
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
                 try {
-                    val movies = repository.getMovies()
-                    uiState =
-                        uiState.copy(
+                    val (movies, users) =
+                        supervisorScope {
+                            val moviesDeferred = async {
+                                try {
+                                    Result.success(repository.getMovies())
+                                } catch (exception: CancellationException) {
+                                    throw exception
+                                } catch (exception: Exception) {
+                                    Result.failure<List<Movie>>(exception)
+                                }
+                            }
+                            val usersDeferred = async {
+                                try {
+                                    Result.success(userPreferences.loadUsers(HomeUiState().users))
+                                } catch (exception: CancellationException) {
+                                    throw exception
+                                } catch (exception: Exception) {
+                                    Result.failure(exception)
+                                }
+                            }
+                            moviesDeferred.await().getOrThrow() to
+                                usersDeferred.await().getOrThrow()
+                        }
+                    _uiState.update { state ->
+                        state.copy(
                             movies = movies,
                             categoryMovies = MovieCatalog.categorize(movies),
                             categoryIndexes = emptyMap(),
                             selectedMovie = null,
                             isLoading = false,
+                            users = users,
+                            matches =
+                                MovieCatalog.findMatches(movies, users, state.selectedUserIndex),
                         )
+                    }
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (exception: Exception) {
-                    uiState =
-                        uiState.copy(
-                            isLoading = false,
-                            errorMessage = exception.message ?: "Unable to load movies.",
-                        )
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = exception.toUserMessage())
+                    }
                 }
             }
     }
 
+    private fun Exception.toUserMessage(): String =
+        when {
+            this is HttpException && code() == 401 ->
+                "TMDB authentication failed. Check your token."
+            this is HttpException && code() == 429 -> "TMDB rate limit reached. Try again shortly."
+            this is HttpException && code() >= 500 -> "TMDB is temporarily unavailable."
+            message.isNullOrBlank() -> "Unable to load movies."
+            else -> message.orEmpty()
+        }
+
     fun selectSection(section: AppSection) {
-        uiState = uiState.copy(currentSection = section, selectedMovie = null)
+        _uiState.update { it.copy(currentSection = section, selectedMovie = null) }
     }
 
     fun selectFilter(filter: MovieListFilter) {
-        uiState = uiState.copy(listFilter = filter)
+        _uiState.update { it.copy(listFilter = filter) }
     }
 
     fun selectUser(index: Int) {
         if (index !in uiState.users.indices) return
-        uiState = uiState.copy(selectedUserIndex = index, selectedMovie = null, matchPopup = null)
+        _uiState.update { state ->
+            state.copy(
+                selectedUserIndex = index,
+                selectedMovie = null,
+                matchPopup = null,
+                matches = MovieCatalog.findMatches(state.movies, state.users, index),
+            )
+        }
     }
 
     fun selectMovie(category: MovieCategory, movie: Movie) {
         val index = uiState.categoryMovies[category].orEmpty().indexOfFirst { it.id == movie.id }
-        uiState =
-            uiState.copy(
+        _uiState.update { state ->
+            state.copy(
                 selectedMovie = SelectedMovieState(category, movie),
                 categoryIndexes =
-                    if (index >= 0) uiState.categoryIndexes + (category to index)
-                    else uiState.categoryIndexes,
+                    if (index >= 0) state.categoryIndexes + (category to index)
+                    else state.categoryIndexes,
             )
+        }
     }
 
     fun closeDetails() {
-        uiState = uiState.copy(selectedMovie = null)
+        _uiState.update { it.copy(selectedMovie = null) }
     }
 
     fun dismissMatch() {
-        uiState = uiState.copy(matchPopup = null)
+        _uiState.update { it.copy(matchPopup = null) }
     }
 
     fun rateSelectedMovie(liked: Boolean) {
@@ -104,44 +156,40 @@ class HomeViewModel(private val repository: MovieRepository) : ViewModel() {
     }
 
     private fun rateMovie(movie: Movie, liked: Boolean) {
-        val wasLiked = movie.id in uiState.currentUser.likedMovieIds
+        val previous = uiState
+        val wasLiked = movie.id in previous.currentUser.likedMovieIds
         val users =
-            uiState.users.mapIndexed { index, user ->
-                if (index == uiState.selectedUserIndex) user.rateMovie(movie.id, liked) else user
+            previous.users.mapIndexed { index, user ->
+                if (index == previous.selectedUserIndex) user.rateMovie(movie.id, liked) else user
             }
-        val updated = uiState.copy(users = users)
-        uiState =
-            updated.copy(
+        val matches = MovieCatalog.findMatches(previous.movies, users, previous.selectedUserIndex)
+        _uiState.update { state ->
+            state.copy(
+                users = users,
+                matches = matches,
                 matchPopup =
                     if (liked && !wasLiked) {
-                        updated.matches.firstOrNull { it.movieId == movie.id }
-                    } else updated.matchPopup
+                        matches.firstOrNull { it.movieId == movie.id }
+                    } else state.matchPopup,
             )
+        }
+        viewModelScope.launch { saveMutex.withLock { userPreferences.saveUsers(users) } }
     }
 
     private fun advanceCategory(category: MovieCategory, showDetails: Boolean) {
         val movies = uiState.categoryMovies[category].orEmpty()
         if (movies.isEmpty()) return
         val nextIndex = ((uiState.categoryIndexes[category] ?: 0) + 1) % movies.size
-        uiState =
-            uiState.copy(
-                categoryIndexes = uiState.categoryIndexes + (category to nextIndex),
+        _uiState.update { state ->
+            state.copy(
+                categoryIndexes = state.categoryIndexes + (category to nextIndex),
                 selectedMovie =
-                    if (showDetails) SelectedMovieState(category, movies[nextIndex])
-                    else uiState.selectedMovie,
+                    if (showDetails) {
+                        SelectedMovieState(category, movies[nextIndex])
+                    } else {
+                        state.selectedMovie
+                    },
             )
-    }
-
-    companion object {
-        val Factory: ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    require(modelClass.isAssignableFrom(HomeViewModel::class.java))
-                    val repository =
-                        TmdbMovieRepository(TmdbClient.createApi(BuildConfig.TMDB_TOKEN))
-                    @Suppress("UNCHECKED_CAST")
-                    return HomeViewModel(repository) as T
-                }
-            }
+        }
     }
 }

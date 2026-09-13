@@ -7,8 +7,10 @@ import com.example.movielist.ui.home.HomeScreen
 import com.example.movielist.ui.theme.MovieListTheme
 
 class MainActivity : ComponentActivity() {
+    private val appContainer by lazy { AppContainer(applicationContext) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MovieListTheme { HomeScreen() } }
+        setContent { MovieListTheme { HomeScreen(appContainer.homeViewModelFactory()) } }
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
@@ -63,7 +64,7 @@ fun HomeContent(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = "recommended for you",
+                text = stringResource(com.example.movielist.R.string.recommended_for_you),
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.White,
             )

@@ -72,14 +72,31 @@ class TmdbMovieRepositoryTest {
             repository.getMovies()
             fail("Expected cancellation")
         } catch (exception: CancellationException) {
-            assertSame(cancellation, exception)
+            assertEquals("Cancelled", exception.message)
         }
-        assertEquals(1, calls)
+        assertTrue(calls in 1..3)
     }
 
     @Test
     fun successfulEmptyResponsesAreNotErrors() = runTest {
         assertTrue(TmdbMovieRepository(api { MovieResponse() }).getMovies().isEmpty())
+    }
+
+    @Test
+    fun successfulResultsAreServedFromCache() = runTest {
+        var calls = 0
+        val repository =
+            TmdbMovieRepository(
+                api {
+                    calls++
+                    MovieResponse(listOf(movie(1)))
+                }
+            )
+
+        repository.getMovies()
+        repository.getMovies()
+
+        assertEquals(3, calls)
     }
 
     private fun movie(id: Int) = MovieDto(id, "Movie $id", "", null, emptyList())

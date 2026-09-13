@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.ui.components.MoviePosterItem
@@ -61,10 +62,14 @@ fun MovieListsScreen(
         }
         Spacer(modifier = Modifier.height(28.dp))
         if (movies.isEmpty()) {
-            Text("No movies here yet.", color = Color.LightGray)
+            Text(
+                stringResource(com.example.movielist.R.string.no_movies_here),
+                color = Color.LightGray,
+            )
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                modifier = Modifier.weight(1f),
+                columns = GridCells.Adaptive(minSize = 140.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {

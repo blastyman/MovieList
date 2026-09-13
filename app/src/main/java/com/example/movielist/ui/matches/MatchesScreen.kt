@@ -18,21 +18,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.movielist.domain.model.Match
+import com.example.movielist.ui.components.MovieImage
 import com.example.movielist.ui.components.ScreenHeader
 import com.example.movielist.ui.theme.MovieSurface
-import com.example.movielist.ui.utils.posterUrl
 
 @Composable
 fun MatchesScreen(matches: List<Match>, onMenuClick: () -> Unit) {
@@ -46,7 +43,11 @@ fun MatchesScreen(matches: List<Match>, onMenuClick: () -> Unit) {
 
         if (matches.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No matches yet.", color = Color.White, fontSize = 18.sp)
+                Text(
+                    text = stringResource(com.example.movielist.R.string.no_matches),
+                    color = Color.White,
+                    fontSize = 18.sp,
+                )
             }
         } else {
             LazyColumn {
@@ -60,11 +61,11 @@ fun MatchesScreen(matches: List<Match>, onMenuClick: () -> Unit) {
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            AsyncImage(
-                                model = posterUrl(match.posterPath),
+                            MovieImage(
+                                posterPath = match.posterPath,
                                 contentDescription = match.movieTitle,
                                 modifier = Modifier.size(100.dp).clip(RoundedCornerShape(18.dp)),
-                                contentScale = ContentScale.Crop,
+                                width = 342,
                             )
 
                             Spacer(modifier = Modifier.width(14.dp))
@@ -80,7 +81,11 @@ fun MatchesScreen(matches: List<Match>, onMenuClick: () -> Unit) {
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 Text(
-                                    text = "You and ${match.userName} both like this movie.",
+                                    text =
+                                        stringResource(
+                                            com.example.movielist.R.string.both_like_movie,
+                                            match.userName,
+                                        ),
                                     color = Color.LightGray,
                                 )
                             }

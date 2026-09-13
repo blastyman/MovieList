@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,7 +56,7 @@ fun MatchPopup(match: Match, onDismiss: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "MATCH!",
+                    text = stringResource(com.example.movielist.R.string.match),
                     color = Color.White,
                     fontSize = 38.sp,
                     fontWeight = FontWeight.Bold,
@@ -64,7 +65,11 @@ fun MatchPopup(match: Match, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "${match.userName} also likes this.",
+                    text =
+                        stringResource(
+                            com.example.movielist.R.string.match_description,
+                            match.userName,
+                        ),
                     color = Color.White,
                     fontSize = 18.sp,
                     textAlign = TextAlign.Center,

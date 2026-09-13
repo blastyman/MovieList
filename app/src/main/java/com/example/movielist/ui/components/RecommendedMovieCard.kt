@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,15 +36,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
-import com.example.movielist.ui.utils.posterUrl
 import com.example.movielist.ui.utils.shortOverview
 
 @Composable
@@ -52,6 +51,8 @@ fun RecommendedMovieCard(
     onLike: () -> Unit,
     onDislike: () -> Unit,
 ) {
+    val latestOnLike by rememberUpdatedState(onLike)
+    val latestOnDislike by rememberUpdatedState(onDislike)
     var offsetX by remember(movie.id) { mutableFloatStateOf(0f) }
 
     val animatedOffsetX by
@@ -67,13 +68,13 @@ fun RecommendedMovieCard(
                     translationX = animatedOffsetX
                     rotationZ = rotation
                 }
-                .pointerInput(movie.id, onLike, onDislike) {
+                .pointerInput(movie.id) {
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { _, dragAmount -> offsetX += dragAmount },
                         onDragEnd = {
                             when {
-                                offsetX > 300f -> onDislike()
-                                offsetX < -300f -> onLike()
+                                offsetX > 300f -> latestOnDislike()
+                                offsetX < -300f -> latestOnLike()
                             }
                             offsetX = 0f
                         },
@@ -84,15 +85,12 @@ fun RecommendedMovieCard(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MovieSurface),
     ) {
-        Box(modifier = Modifier.fillMaxWidth().height(540.dp)) {
-            AsyncImage(
-                model = posterUrl(movie.posterPath),
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.68f)) {
+            MovieImage(
+                posterPath = movie.posterPath,
                 contentDescription = movie.title,
-                modifier =
-                    Modifier.fillMaxSize()
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Color.DarkGray),
-                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)),
+                width = 780,
             )
 
             Box(

@@ -16,8 +16,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.movielist.R
 import com.example.movielist.ui.details.MovieDetailsScreen
 import com.example.movielist.ui.lists.MovieListsScreen
 import com.example.movielist.ui.matches.MatchPopup
@@ -28,8 +32,9 @@ import com.example.movielist.ui.user.UserScreen
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)) {
-    val state = viewModel.uiState
+fun HomeScreen(factory: ViewModelProvider.Factory) {
+    val viewModel: HomeViewModel = viewModel(factory = factory)
+    val state = viewModel.uiStateFlow.collectAsStateWithLifecycle().value
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val openMenu: () -> Unit = { scope.launch { drawerState.open() } }
@@ -55,7 +60,8 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Fact
                         }
                     state.errorMessage != null ->
                         LoadingMessage(
-                            message = "Error: ${state.errorMessage}",
+                            message =
+                                stringResource(R.string.error_loading_movies, state.errorMessage),
                             onRetry = viewModel::loadMovies,
                         )
                     selection != null ->
@@ -91,7 +97,10 @@ fun HomeScreen(viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Fact
                                 )
                             AppSection.HOME ->
                                 if (state.movies.isEmpty()) {
-                                    LoadingMessage("No movies available.", viewModel::loadMovies)
+                                    LoadingMessage(
+                                        stringResource(R.string.no_movies_available),
+                                        viewModel::loadMovies,
+                                    )
                                 } else {
                                     HomeContent(
                                         categoryMovies = state.categoryMovies,
@@ -121,6 +130,6 @@ private fun LoadingMessage(message: String, onRetry: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text(message)
-        Button(onClick = onRetry) { Text("Retry") }
+        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
 }

@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">MovieList</string>
+    <string name="retry">Retry</string>
+    <string name="error_loading_movies">Error: %1$s</string>
+    <string name="no_movies_available">No movies available.</string>
+    <string name="no_movies_here">No movies here yet.</string>
+    <string name="no_matches">No matches yet.</string>
+    <string name="read_more">read more</string>
+    <string name="no_description">No description available.</string>
+    <string name="match">MATCH!</string>
+    <string name="match_description">%1$s also likes this.</string>
+    <string name="both_like_movie">You and %1$s both like this movie.</string>
+    <string name="recommended_for_you">recommended for you</string>
 </resources>

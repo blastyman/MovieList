@@ -2,7 +2,6 @@ package com.example.movielist.ui.lists
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,29 +11,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.ThumbDown
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.movielist.data.model.Movie
+import com.example.movielist.domain.model.Movie
 import com.example.movielist.ui.components.MoviePosterItem
+import com.example.movielist.ui.components.ScreenHeader
+import com.example.movielist.ui.components.icon
 
 @Composable
 fun MovieListsScreen(
@@ -43,223 +36,62 @@ fun MovieListsScreen(
     selectedFilter: MovieListFilter,
     onFilterChange: (MovieListFilter) -> Unit,
     onMenuClick: () -> Unit,
-    onMovieClick: (Movie, String) -> Unit
+    onMovieClick: (Movie, MovieListFilter) -> Unit,
 ) {
-
     val movies =
         when (selectedFilter) {
-
-            MovieListFilter.LIKED ->
-                likedMovies
-
-            MovieListFilter.DISLIKED ->
-                dislikedMovies
+            MovieListFilter.LIKED -> likedMovies
+            MovieListFilter.DISLIKED -> dislikedMovies
         }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier =
+            Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.align(Alignment.CenterStart)
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    tint = Color.White
-                )
-            }
-
-            Text(
-                text = "lists",
-
-                style =
-                    MaterialTheme.typography.displayLarge.copy(
-                        fontStyle = FontStyle.Italic,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.SansSerif
-                    ),
-
-                color = Color(0xFFE50914),
-
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-
+        ScreenHeader("lists", onMenuClick)
         Spacer(modifier = Modifier.height(20.dp))
-
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement =
+                Arrangement.spacedBy(12.dp, androidx.compose.ui.Alignment.CenterHorizontally),
         ) {
-
-            OutlinedButton(
-                onClick = {
-                    onFilterChange(MovieListFilter.LIKED)
-                },
-
-                shape = RoundedCornerShape(12.dp),
-
-                border = BorderStroke(
-                    1.dp,
-
-                    if (selectedFilter == MovieListFilter.LIKED)
-                        Color(0xFFE50914)
-                    else
-                        Color.Gray
-                ),
-
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor =
-                        if (selectedFilter == MovieListFilter.LIKED)
-                            Color(0xFFE50914)
-                        else
-                            Color.Transparent
-                )
-            ) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        imageVector = Icons.Default.ThumbUp,
-                        contentDescription = null,
-
-                        tint =
-                            if (selectedFilter == MovieListFilter.LIKED)
-                                Color.White
-                            else
-                                Color.Gray
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = "liked",
-
-                        color =
-                            if (selectedFilter == MovieListFilter.LIKED)
-                                Color.White
-                            else
-                                Color.Gray
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.padding(6.dp))
-
-            OutlinedButton(
-                onClick = {
-                    onFilterChange(MovieListFilter.DISLIKED)
-                },
-
-                shape = RoundedCornerShape(12.dp),
-
-                border = BorderStroke(
-                    1.dp,
-
-                    if (selectedFilter == MovieListFilter.DISLIKED)
-                        Color(0xFFE50914)
-                    else
-                        Color.Gray
-                ),
-
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor =
-                        if (selectedFilter == MovieListFilter.DISLIKED)
-                            Color(0xFFE50914)
-                        else
-                            Color.Transparent
-                )
-            ) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    Icon(
-                        imageVector = Icons.Default.ThumbDown,
-                        contentDescription = null,
-
-                        tint =
-                            if (selectedFilter == MovieListFilter.DISLIKED)
-                                Color.White
-                            else
-                                Color.Gray
-                    )
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    Text(
-                        text = "disliked",
-
-                        color =
-                            if (selectedFilter == MovieListFilter.DISLIKED)
-                                Color.White
-                            else
-                                Color.Gray
-                    )
-                }
+            MovieListFilter.entries.forEach { filter ->
+                FilterButton(filter, filter == selectedFilter) { onFilterChange(filter) }
             }
         }
-
         Spacer(modifier = Modifier.height(28.dp))
-
         if (movies.isEmpty()) {
-
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-
-                Text(
-                    text = "No movies here yet.",
-                    color = Color.LightGray
-                )
-            }
-
+            Text("No movies here yet.", color = Color.LightGray)
         } else {
-
-            movies.chunked(2).forEach { rowMovies ->
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-
-                    rowMovies.forEach { movie ->
-
-                        MoviePosterItem(
-                            movie = movie,
-
-                            onClick = {
-
-                                onMovieClick(
-                                    movie,
-
-                                    if (selectedFilter == MovieListFilter.LIKED)
-                                        "liked"
-                                    else
-                                        "disliked"
-                                )
-                            }
-                        )
-                    }
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(movies, key = Movie::id) { movie ->
+                    MoviePosterItem(movie, onClick = { onMovieClick(movie, selectedFilter) })
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun FilterButton(filter: MovieListFilter, selected: Boolean, onClick: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    val foreground = if (selected) Color.White else Color.Gray
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, if (selected) primary else Color.Gray),
+        colors =
+            ButtonDefaults.outlinedButtonColors(
+                containerColor = if (selected) primary else Color.Transparent,
+                contentColor = foreground,
+            ),
+    ) {
+        Icon(imageVector = filter.category.icon, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(filter.category.displayName)
     }
 }

@@ -12,38 +12,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.example.movielist.ui.theme.MovieRed
 
 @Composable
-fun DrawerItem(
-    text: String,
-    icon: ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
+fun DrawerItem(text: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
     NavigationDrawerItem(
         icon = {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (selected) Color.White else Color.LightGray
+                tint = if (selected) Color.White else Color.LightGray,
             )
         },
         label = {
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = FontFamily.Default
-                )
+                style = MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Default),
             )
         },
         selected = selected,
         onClick = onClick,
         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-        colors = NavigationDrawerItemDefaults.colors(
-            selectedContainerColor = Color(0xFFE50914),
-            unselectedContainerColor = Color.Transparent,
-            selectedTextColor = Color.White,
-            unselectedTextColor = Color.LightGray
-        )
+        colors =
+            NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = MovieRed,
+                unselectedContainerColor = Color.Transparent,
+                selectedTextColor = Color.White,
+                unselectedTextColor = Color.LightGray,
+            ),
     )
 }

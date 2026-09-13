@@ -47,8 +47,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.movielist.data.model.Movie
+import com.example.movielist.domain.model.Movie
 import com.example.movielist.ui.components.AnimatedIconButton
+import com.example.movielist.ui.theme.MovieButton
+import com.example.movielist.ui.theme.MovieDisliked
+import com.example.movielist.ui.theme.MovieLiked
+import com.example.movielist.ui.theme.MovieRed
+import com.example.movielist.ui.utils.posterUrl
 import com.example.movielist.ui.utils.shortOverview
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -61,7 +66,7 @@ fun MovieDetailsScreen(
     isDisliked: Boolean,
     onBack: () -> Unit,
     onLike: () -> Unit,
-    onDislike: () -> Unit
+    onDislike: () -> Unit,
 ) {
     var expanded by remember(movie.id) { mutableStateOf(false) }
     var dragOffset by remember(movie.id) { mutableFloatStateOf(0f) }
@@ -71,108 +76,99 @@ fun MovieDetailsScreen(
     val swipeThreshold = 220f
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+        modifier =
+            Modifier.fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = Color.White,
                 )
             }
 
             Text(
                 text = category,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.SansSerif
-                ),
-                color = Color(0xFFE50914)
+                style =
+                    MaterialTheme.typography.headlineMedium.copy(
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.SansSerif,
+                    ),
+                color = MovieRed,
             )
         }
 
         Spacer(modifier = Modifier.height(18.dp))
 
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(460.dp)
-                .offset { IntOffset(dragOffset.roundToInt(), 0) }
-                .graphicsLayer {
-                    rotationZ = dragOffset / 35f
-                    alpha = 1f - (abs(dragOffset) / 900f)
-                }
-                .pointerInput(movie.id) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            when {
-                                dragOffset > swipeThreshold -> onDislike()
-                                dragOffset < -swipeThreshold -> onLike()
-                            }
-                            dragOffset = 0f
-                        },
-                        onHorizontalDrag = { _, dragAmount ->
-                            dragOffset += dragAmount
-                        }
-                    )
-                }
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(460.dp)
+                    .offset { IntOffset(dragOffset.roundToInt(), 0) }
+                    .graphicsLayer {
+                        rotationZ = dragOffset / 35f
+                        alpha = (1f - (abs(dragOffset) / 900f)).coerceIn(0f, 1f)
+                    }
+                    .pointerInput(movie.id, onLike, onDislike) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                when {
+                                    dragOffset > swipeThreshold -> onDislike()
+                                    dragOffset < -swipeThreshold -> onLike()
+                                }
+                                dragOffset = 0f
+                            },
+                            onDragCancel = { dragOffset = 0f },
+                            onHorizontalDrag = { _, dragAmount -> dragOffset += dragAmount },
+                        )
+                    }
         ) {
             AsyncImage(
-                model = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" },
+                model = posterUrl(movie.posterPath),
                 contentDescription = movie.title,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Color.DarkGray),
-                contentScale = ContentScale.Crop
+                modifier =
+                    Modifier.fillMaxSize()
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.DarkGray),
+                contentScale = ContentScale.Crop,
             )
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .align(Alignment.BottomCenter)
-                    .clip(
-                        RoundedCornerShape(
-                            bottomStart = 28.dp,
-                            bottomEnd = 28.dp
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .height(150.dp)
+                        .align(Alignment.BottomCenter)
+                        .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                        .background(
+                            brush =
+                                Brush.verticalGradient(
+                                    colors =
+                                        listOf(Color.Transparent, Color.White.copy(alpha = 0.35f))
+                                )
                         )
-                    )
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.White.copy(alpha = 0.35f)
-                            )
-                        )
-                    )
             )
 
             Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset(y = (-10).dp),
-                horizontalArrangement = Arrangement.spacedBy(90.dp)
+                modifier = Modifier.align(Alignment.BottomCenter).offset(y = (-10).dp),
+                horizontalArrangement = Arrangement.spacedBy(90.dp),
             ) {
                 AnimatedIconButton(
                     icon = Icons.Default.ThumbDown,
-                    color = if (isDisliked) Color(0xFFB00020) else Color(0xFF2C2C2C),
-                    onClick = onDislike
+                    contentDescription = "Dislike",
+                    color = if (isDisliked) MovieDisliked else MovieButton,
+                    onClick = onDislike,
                 )
 
                 AnimatedIconButton(
                     icon = Icons.Default.ThumbUp,
-                    color = if (isLiked) Color(0xFF00A86B) else Color(0xFFE50914),
-                    onClick = onLike
+                    contentDescription = "Like",
+                    color = if (isLiked) MovieLiked else MovieRed,
+                    onClick = onLike,
                 )
             }
         }
@@ -188,36 +184,29 @@ fun MovieDetailsScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
-            text = if (expanded) movie.overview.ifBlank { "No description available." } else shortText,
+            text =
+                if (expanded) movie.overview.ifBlank { "No description available." } else shortText,
             style = MaterialTheme.typography.bodyLarge,
             color = Color.LightGray,
-            maxLines = if (expanded) Int.MAX_VALUE else 5
+            maxLines = if (expanded) Int.MAX_VALUE else 5,
         )
 
         if (!expanded && needsExpansion) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center,
             ) {
                 TextButton(
                     onClick = { expanded = true },
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.textButtonColors(
-                        containerColor = Color(0xFFE50914)
-                    ),
-                    contentPadding = PaddingValues(
-                        horizontal = 14.dp,
-                        vertical = 2.dp
-                    )
+                    colors = ButtonDefaults.textButtonColors(containerColor = MovieRed),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp),
                 ) {
                     Text(
                         text = "read more",
                         color = Color.White,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     )
                 }
             }

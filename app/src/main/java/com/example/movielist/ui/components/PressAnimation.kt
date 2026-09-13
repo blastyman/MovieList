@@ -13,28 +13,25 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 
 @Composable
-fun pressAnimatedModifier(onClick: () -> Unit): Modifier {
+fun Modifier.pressAnimatedClickable(onClick: () -> Unit): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 1.06f else 1f,
-        animationSpec = tween(100),
-        label = "scale"
-    )
-
-    val alpha by animateFloatAsState(
-        targetValue = if (pressed) 0.75f else 1f,
-        animationSpec = tween(100),
-        label = "alpha"
-    )
-
-    return Modifier
-        .scale(scale)
-        .graphicsLayer { this.alpha = alpha }
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = onClick
+    val scale by
+        animateFloatAsState(
+            targetValue = if (pressed) 1.06f else 1f,
+            animationSpec = tween(100),
+            label = "scale",
         )
+
+    val alpha by
+        animateFloatAsState(
+            targetValue = if (pressed) 0.75f else 1f,
+            animationSpec = tween(100),
+            label = "alpha",
+        )
+
+    return this.scale(scale)
+        .graphicsLayer { this.alpha = alpha }
+        .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
 }

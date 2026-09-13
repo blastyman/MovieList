@@ -23,21 +23,24 @@ import kotlinx.coroutines.delay
 fun AnimatedIconButton(
     icon: ImageVector,
     color: Color,
-    onClick: () -> Unit
+    contentDescription: String,
+    onClick: () -> Unit,
 ) {
     var clicked by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
-    val scale by animateFloatAsState(
-        targetValue = when {
-            pressed -> 1.18f
-            clicked -> 1.10f
-            else -> 1f
-        },
-        animationSpec = tween(120),
-        label = "buttonScale"
-    )
+    val scale by
+        animateFloatAsState(
+            targetValue =
+                when {
+                    pressed -> 1.18f
+                    clicked -> 1.10f
+                    else -> 1f
+                },
+            animationSpec = tween(120),
+            label = "buttonScale",
+        )
 
     LaunchedEffect(clicked) {
         if (clicked) {
@@ -53,12 +56,8 @@ fun AnimatedIconButton(
         },
         modifier = Modifier.scale(scale),
         interactionSource = interactionSource,
-        colors = ButtonDefaults.buttonColors(containerColor = color)
+        colors = ButtonDefaults.buttonColors(containerColor = color),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White
-        )
+        Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White)
     }
 }

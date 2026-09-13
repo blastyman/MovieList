@@ -7,13 +7,16 @@ fun shortOverview(text: String): String {
     }
 
     val cleaned = text.trim()
-    val firstSentence = cleaned.substringBefore(".")
+    val firstSentence = cleaned.substringBefore('.')
 
-    return if (firstSentence.length in 21..140) {
+    return if (firstSentence.length in MIN_SENTENCE_LENGTH..MAX_OVERVIEW_LENGTH) {
         "$firstSentence."
-    } else if (cleaned.length > 140) {
-        cleaned.take(140).trim() + "..."
+    } else if (cleaned.length > MAX_OVERVIEW_LENGTH) {
+        cleaned.take(MAX_OVERVIEW_LENGTH).trimEnd() + "..."
     } else {
         cleaned
     }
 }
+
+private const val MIN_SENTENCE_LENGTH = 21
+private const val MAX_OVERVIEW_LENGTH = 140

@@ -4,5 +4,5 @@ enum class AppSection(val displayName: String) {
     HOME("home"),
     LISTS("lists"),
     MATCHES("matches"),
-    USER("user")
+    USER("user"),
 }

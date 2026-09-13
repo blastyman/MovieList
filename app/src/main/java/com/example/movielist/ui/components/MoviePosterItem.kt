@@ -19,26 +19,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.movielist.data.model.Movie
+import com.example.movielist.domain.model.Movie
+import com.example.movielist.ui.utils.posterUrl
 
 @Composable
-fun MoviePosterItem(
-    movie: Movie,
-    onClick: () -> Unit
-) {
+fun MoviePosterItem(movie: Movie, onClick: () -> Unit) {
     Column(
-        modifier = pressAnimatedModifier(onClick).width(140.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.pressAnimatedClickable(onClick).width(140.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AsyncImage(
-            model = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" },
+            model = posterUrl(movie.posterPath),
             contentDescription = movie.title,
-            modifier = Modifier
-                .width(140.dp)
-                .height(210.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.DarkGray),
-            contentScale = ContentScale.Crop
+            modifier =
+                Modifier.width(140.dp)
+                    .height(210.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.DarkGray),
+            contentScale = ContentScale.Crop,
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -50,7 +48,7 @@ fun MoviePosterItem(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

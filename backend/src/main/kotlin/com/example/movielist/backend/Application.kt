@@ -16,6 +16,8 @@ import com.example.movielist.backend.features.ratings.ratingRoutes
 import com.example.movielist.backend.features.reactions.ReactionService
 import com.example.movielist.backend.features.reactions.reactionRoutes
 import com.example.movielist.backend.features.users.UserRepository
+import com.example.movielist.backend.features.users.UserService
+import com.example.movielist.backend.features.users.userRoutes
 import com.example.movielist.backend.plugins.configureMonitoring
 import com.example.movielist.backend.plugins.configureSecurity
 import com.example.movielist.backend.plugins.configureSerialization
@@ -64,6 +66,7 @@ fun Application.module(
     val reactionService = ReactionService(database, movieService)
     val ratingService = RatingService(database, movieService)
     val commentService = CommentService(database, movieService)
+    val userService = UserService(database)
 
     configureSerialization()
     configureStatusPages()
@@ -77,5 +80,6 @@ fun Application.module(
         reactionRoutes(reactionService)
         ratingRoutes(ratingService)
         commentRoutes(commentService)
+        userRoutes(userService)
     }
 }

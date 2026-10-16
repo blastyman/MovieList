@@ -35,6 +35,8 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | GET | `/health` | – | database check |
 | POST | `/auth/register`, `/auth/login` | – | returns `{token, user}` |
 | GET / PATCH | `/me` | JWT | own profile |
+| GET | `/users/search?q=&page=` | JWT | people by username or display name (2+ characters, ignoring case), exact matches first; 20 per page with `hasMore`; each has `friendship` |
+| GET | `/users/{userId}` | JWT | public profile: name, member since, counts (likes, ratings, comments, friends), 10 newest likes, `friendship`, `isMe`; never the email |
 | GET | `/movies/discover?page=&genre=` | JWT | popular movies, cached 10 min |
 | GET | `/movies/search?q=&page=` | JWT | cached 10 min |
 | GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down), plus `avgRating`, `ratingCount`, `myRating`, `myReaction`, `commentCount` |

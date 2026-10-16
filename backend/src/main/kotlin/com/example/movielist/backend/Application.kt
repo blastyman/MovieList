@@ -6,6 +6,10 @@ import com.example.movielist.backend.features.auth.AuthService
 import com.example.movielist.backend.features.auth.JwtService
 import com.example.movielist.backend.features.auth.PasswordHasher
 import com.example.movielist.backend.features.auth.authRoutes
+import com.example.movielist.backend.features.chat.ChatHub
+import com.example.movielist.backend.features.chat.ChatService
+import com.example.movielist.backend.features.chat.chatRoutes
+import com.example.movielist.backend.features.chat.configureWebSockets
 import com.example.movielist.backend.features.comments.CommentService
 import com.example.movielist.backend.features.comments.commentRoutes
 import com.example.movielist.backend.features.friends.FriendService
@@ -76,11 +80,14 @@ fun Application.module(
     val commentService = CommentService(database, movieService)
     val userService = UserService(database)
     val friendService = FriendService(database)
+    val chatHub = ChatHub()
+    val chatService = ChatService(database, chatHub)
 
     configureSerialization()
     configureStatusPages()
     configureMonitoring()
     configureSecurity(jwtService)
+    configureWebSockets()
 
     routing {
         healthRoutes(database)
@@ -93,5 +100,6 @@ fun Application.module(
         friendRoutes(friendService)
         matchRoutes(matchService)
         groupRoutes(groupService)
+        chatRoutes(chatService, chatHub)
     }
 }

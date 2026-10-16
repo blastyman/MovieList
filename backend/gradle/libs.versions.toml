@@ -19,6 +19,7 @@ ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages
 ktor-server-call-logging = { group = "io.ktor", name = "ktor-server-call-logging" }
 ktor-server-auth = { group = "io.ktor", name = "ktor-server-auth" }
 ktor-server-auth-jwt = { group = "io.ktor", name = "ktor-server-auth-jwt" }
+ktor-server-websockets = { group = "io.ktor", name = "ktor-server-websockets" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
 ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host" }
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core" }

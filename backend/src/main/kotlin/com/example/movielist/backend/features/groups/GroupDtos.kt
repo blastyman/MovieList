@@ -19,6 +19,8 @@ data class GroupDto(
     val id: String,
     val name: String,
     val ownerId: String,
+    /** The group's chat. */
+    val conversationId: String,
     /** The owner first, then by when they joined. */
     val members: List<UserSummaryDto>,
     val maxMembers: Int,

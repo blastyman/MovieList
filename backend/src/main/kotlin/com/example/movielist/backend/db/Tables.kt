@@ -40,7 +40,7 @@ object Friendships : Table("friendships") {
 object FriendGroups : Table("friend_groups") {
     val id = javaUUID("id").autoGenerate()
     val name = varchar("name", 50)
-    val ownerId = javaUUID("owner_id").references(Users.id)
+    val ownerId = javaUUID("owner_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
     override val primaryKey = PrimaryKey(id)
@@ -58,6 +58,9 @@ object Conversations : Table("conversations") {
     val id = javaUUID("id").autoGenerate()
     val type = varchar("type", 10) // ConversationType
     val groupId = javaUUID("group_id").references(FriendGroups.id, onDelete = ReferenceOption.CASCADE).nullable()
+
+    /** "<smaller user id>:<larger user id>" for a DIRECT conversation, unique; null for a GROUP one. */
+    val directKey = text("direct_key").nullable()
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
     override val primaryKey = PrimaryKey(id)
@@ -74,7 +77,7 @@ object ConversationMembers : Table("conversation_members") {
 object Messages : Table("messages") {
     val id = javaUUID("id").autoGenerate()
     val conversationId = javaUUID("conversation_id").references(Conversations.id, onDelete = ReferenceOption.CASCADE)
-    val senderId = javaUUID("sender_id").references(Users.id)
+    val senderId = javaUUID("sender_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
     val body = text("body")
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 

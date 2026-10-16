@@ -54,6 +54,13 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | POST | `/groups/{id}/members` | JWT | `{userId}`: add one of your friends; 409 `GROUP_FULL` at 10 (checked under a row lock, so racing adds can't make 11) |
 | DELETE | `/groups/{id}/members/{userId}` | JWT | owner removes someone (200 + group), or you leave (204); an owner who leaves hands over to the earliest member, the last one out deletes the group |
 | GET | `/groups/{id}/matches` | JWT | movies every member likes, newest match first |
+| GET | `/conversations` | JWT | your chats, most recently active first, with `lastMessage` and `unreadCount` (group chats have `groupId`; groups also report their `conversationId`) |
+| POST | `/conversations/direct` | JWT | `{userId}`: the one-to-one chat with a friend, created on first use; 403 `NOT_FRIENDS` otherwise |
+| GET | `/conversations/{id}` | JWT | one chat; 404 if you aren't in it |
+| GET | `/conversations/{id}/messages?before=&limit=` | JWT | history, newest first; `nextCursor` → `before` |
+| POST | `/conversations/{id}/messages` | JWT | `{body}` (1–2000 chars): sends without the WebSocket; still pushed live to the others. After unfriending, a direct chat is read-only |
+| POST | `/conversations/{id}/read` | JWT | marks it read (204) |
+| WS | `/ws` | JWT (header) | live chat. App sends `{type: send, conversationId, body, clientId}`, `{type: typing, …}`, `{type: read, …}`; server pushes `{type: message, message, clientId}`, `{type: typing, conversationId, userId}`, `{type: error, error, message, clientId}` |
 | GET | `/me/reactions/ids` | JWT | `{liked: [ids], disliked: [ids]}` |
 | GET | `/me/reactions?type=&limit=&before=` | JWT | movies with title/poster, newest first; `nextCursor` → `before` |
 | PUT / DELETE | `/movies/{id}/rating` | JWT | `{score: 1..10}`; both return the updated stats |

@@ -233,7 +233,15 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
                     friendship = states[it[Users.id]] ?: FriendshipState.NONE,
                 )
             }
-        return GroupDto(groupId.toString(), name, ownerId.toString(), members, MAX_MEMBERS, createdAt.toInstant().toString())
+        return GroupDto(
+            id = groupId.toString(),
+            name = name,
+            ownerId = ownerId.toString(),
+            conversationId = conversationOf(groupId).toString(),
+            members = members,
+            maxMembers = MAX_MEMBERS,
+            createdAt = createdAt.toInstant().toString(),
+        )
     }
 
     private fun JdbcTransaction.addMemberRows(groupId: UUID, conversationId: UUID, userId: UUID, joinedAt: OffsetDateTime) {

@@ -58,6 +58,9 @@ dependencies {
     // Auth
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
+
+    // Chat
+    implementation(libs.ktor.server.websockets)
     implementation(libs.bcrypt)
 
     // TMDB client

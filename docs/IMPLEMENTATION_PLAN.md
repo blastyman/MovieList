@@ -19,7 +19,8 @@ The app before this plan (commit `3a78e4d`):
 Everything social (users, friends, chat, groups, comments, ratings, likes) must move to the
 server. The phone becomes a client of **our** API; it should no longer talk to TMDB directly.
 
-**Progress:** Phase 1 ✅ · Phase 2 ✅ (backend auth + login/register screens, logout in the user screen).
+**Progress:** Phase 1 ✅ · Phase 2 ✅ (backend auth + login/register screens, logout in the user screen) ·
+Phase 3 ✅ (movies via `/movies/*` on the backend, TMDB token out of the app, Navigation Compose).
 
 ## 1. Required features
 
@@ -279,20 +280,23 @@ The TMDB token lives only in the server's environment variables.
 ## 5. Android client changes
 
 ### 5.1 Foundation
-Done (before or during Phase 2):
+Done (Phases 2–3):
 - Domain/data/ui layering, `HomeViewModel` with `StateFlow` UI state, DataStore.
 - `AppContainer` owned by the `MovieListApp` Application class (one per process).
-- `BackendClient` → `BackendApi` at `BuildConfig.API_BASE_URL` (`http://10.0.2.2:8080/` in
-  debug, the VPS domain in release); it attaches the JWT and ends the session on a 401.
+- `BackendClient` builds one Retrofit for `BuildConfig.API_BASE_URL` (`http://10.0.2.2:8080/`
+  in debug, the VPS domain in release); it attaches the JWT and ends the session on a 401.
+  Each feature gets its own interface on it: `AuthApi`, `MovieApi`, … (add `FriendsApi`,
+  `ChatApi` the same way).
 - `BackendAuthRepository` (domain interface `AuthRepository`) exposes `SessionState`;
   `MainActivity` shows login, a spinner, or Home based on it. JWT stored by `DataStoreTokenStore`.
+- `BackendMovieRepository` loads movies through `/movies/discover`; the app has no TMDB token
+  and no TMDB API calls (posters still load from TMDB's public image CDN).
+- Drawer sections are Navigation Compose routes (`AppSection.route`) in `HomeScreen`'s
+  `NavHost`; Back returns to home. Movie details are an overlay driven by `HomeViewModel`
+  (like/dislike steps through the category). New screens with arguments (`profile/{userId}`,
+  `chat/{conversationId}`) become `composable` routes in the same `NavHost`.
 - Debug-only cleartext to `10.0.2.2` (`src/debug/res/xml/network_security_config.xml`);
   the token file is excluded from Android backups.
-
-Still to do (Phase 3):
-- Movies through our backend instead of TMDB; drop `TMDB_TOKEN` from the app build.
-- Navigation Compose routes instead of `AppSection` switching, once screens need arguments
-  (movie id, user id, conversation id). Keep the drawer.
 
 ### 5.2 New / changed screens
 | Screen | Content |
@@ -357,7 +361,7 @@ rate limiting, block/report users, offline cache with Room.
 - HTTPS only in production (the host's TLS); Android `network_security_config` allows cleartext only for `10.0.2.2` in debug
 - Authorization checks on every resource (user may only touch their own comments, groups they're in, etc.)
 - Parameterized queries (Exposed does this) — no string-built SQL
-- Keep the TMDB token on the server only (Phase 3): a token built into an APK can be extracted
+- The TMDB token lives on the server only (since Phase 3): a token built into an APK can be extracted
 
 ## 9. Testing
 

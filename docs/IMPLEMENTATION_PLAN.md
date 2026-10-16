@@ -35,7 +35,12 @@ opens their profile, to meet people through movies) ·
 Phase 9 ✅ (friend groups of at most 10 with a GROUP conversation each, limit enforced under a row lock; groups
 list, new-group screen with friend picker and "n/10" counter, group screen with the movies everyone likes, members,
 add/remove/leave/rename, and the owner can disband it; the match popup says when a like completes a group. Removing a friend keeps them in
-shared groups. Person matches stay on the Matches screen; group matches live on each group's screen).
+shared groups. Person matches stay on the Matches screen; group matches live on each group's screen) ·
+Phase 10 ✅ (chat: one-to-one with friends and one chat per group; REST history with cursor paging, unread counts from
+`last_read_at`, and a `/ws` WebSocket that saves each message, then pushes it to the members online. The JWT goes in the
+handshake's Authorization header rather than `?token=` so it never lands in URLs or logs. Migration V4 adds one
+direct chat per pair. App: chats list with unread badges, chat screen with optimistic bubbles (clientId), paging,
+typing indicator and an HTTP fallback when the socket is down; "Message" on a friend's profile, a chat button on groups).
 
 ## 1. Required features
 
@@ -258,7 +263,7 @@ Lists use cursor pagination: `?limit=20&before=<timestamp or id>`.
 | GET | `/conversations/{id}/messages?before=&limit=` | history, newest first |
 | POST | `/conversations/{id}/messages` | fallback send over REST |
 | POST | `/conversations/{id}/read` | update `last_read_at` |
-| WS | `/ws?token=<jwt>` | real-time channel (below) |
+| WS | `/ws` (JWT in the `Authorization` header) | real-time channel (below) |
 
 WebSocket frames (JSON):
 ```jsonc

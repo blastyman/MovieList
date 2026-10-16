@@ -9,7 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +37,11 @@ class MainActivity : ComponentActivity() {
                 val account = authRepository.account.collectAsStateWithLifecycle().value
                 val scope = rememberCoroutineScope()
 
+                // Bumped on every logout, so the next login gets a fresh HomeViewModel instead
+                // of the previous account's likes. Saveable, so rotation keeps the same one.
+                var loginGeneration by rememberSaveable { mutableIntStateOf(0) }
+                LaunchedEffect(session) { if (session == SessionState.LoggedOut) loginGeneration++ }
+
                 when (session) {
                     SessionState.Loading ->
                         Box(
@@ -51,6 +60,7 @@ class MainActivity : ComponentActivity() {
                         }
                         HomeScreen(
                             factory = appContainer.homeViewModelFactory(),
+                            viewModelKey = "home-$loginGeneration",
                             accountUsername = account?.username,
                             onLogout = { scope.launch { authRepository.logout() } },
                         )

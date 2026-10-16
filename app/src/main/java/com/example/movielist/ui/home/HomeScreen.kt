@@ -5,15 +5,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,9 +34,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.movielist.R
+import com.example.movielist.domain.model.Reaction
 import com.example.movielist.ui.details.MovieDetailsScreen
 import com.example.movielist.ui.lists.MovieListsScreen
-import com.example.movielist.ui.matches.MatchPopup
 import com.example.movielist.ui.matches.MatchesScreen
 import com.example.movielist.ui.navigation.AppDrawer
 import com.example.movielist.ui.navigation.AppSection
@@ -41,10 +46,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     factory: ViewModelProvider.Factory,
+    viewModelKey: String,
     accountUsername: String?,
     onLogout: () -> Unit,
 ) {
-    val viewModel: HomeViewModel = viewModel(factory = factory)
+    val viewModel: HomeViewModel = viewModel(key = viewModelKey, factory = factory)
     val state = viewModel.uiStateFlow.collectAsStateWithLifecycle().value
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -52,6 +58,15 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val openMenu: () -> Unit = { scope.launch { drawerState.open() } }
+    val snackbarHost = remember { SnackbarHostState() }
+
+    // A like or rating that failed to save was undone; tell the user once.
+    LaunchedEffect(state.message) {
+        state.message?.let {
+            snackbarHost.showSnackbar(it)
+            viewModel.messageShown()
+        }
+    }
 
     AppDrawer(
         drawerState = drawerState,
@@ -101,16 +116,18 @@ fun HomeScreen(
                         MovieDetailsScreen(
                             category = selection.category.displayName,
                             movie = selection.movie,
-                            isLiked = selection.movie.id in state.currentUser.likedMovieIds,
-                            isDisliked = selection.movie.id in state.currentUser.dislikedMovieIds,
+                            isLiked = state.reactionTo(selection.movie.id) == Reaction.LIKE,
+                            isDisliked = state.reactionTo(selection.movie.id) == Reaction.DISLIKE,
+                            rating = state.selectedRating,
                             onBack = viewModel::closeDetails,
                             onLike = { viewModel.rateSelectedMovie(liked = true) },
                             onDislike = { viewModel.rateSelectedMovie(liked = false) },
+                            onRate = viewModel::setScore,
                         )
                     }
                 }
 
-                state.matchPopup?.let { match -> MatchPopup(match, viewModel::dismissMatch) }
+                SnackbarHost(snackbarHost, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
 
                 if (drawerState.isOpen) BackHandler { scope.launch { drawerState.close() } }
             }
@@ -152,14 +169,11 @@ private fun SectionNavHost(
                 onMovieClick = { movie, filter -> viewModel.selectMovie(filter.category, movie) },
             )
         }
-        composable(AppSection.MATCHES.route) { MatchesScreen(state.matches, openMenu) }
+        composable(AppSection.MATCHES.route) { MatchesScreen(openMenu) }
         composable(AppSection.USER.route) {
             UserScreen(
                 accountUsername = accountUsername,
                 onLogout = onLogout,
-                users = state.users,
-                selectedUserIndex = state.selectedUserIndex,
-                onUserSelected = viewModel::selectUser,
                 onMenuClick = openMenu,
             )
         }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,20 +43,25 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.movielist.R
 import com.example.movielist.domain.model.Movie
+import com.example.movielist.domain.model.RatingStats
 import com.example.movielist.ui.components.AnimatedIconButton
 import com.example.movielist.ui.components.MovieImage
+import com.example.movielist.ui.components.RatingBar
 import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieDisliked
 import com.example.movielist.ui.theme.MovieLiked
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.utils.shortOverview
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -65,9 +71,12 @@ fun MovieDetailsScreen(
     movie: Movie,
     isLiked: Boolean,
     isDisliked: Boolean,
+    /** Null while loading, or if it couldn't be loaded: the rating section is then hidden. */
+    rating: RatingStats?,
     onBack: () -> Unit,
     onLike: () -> Unit,
     onDislike: () -> Unit,
+    onRate: (Int?) -> Unit,
 ) {
     val latestOnLike by rememberUpdatedState(onLike)
     val latestOnDislike by rememberUpdatedState(onDislike)
@@ -183,6 +192,13 @@ fun MovieDetailsScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        // Fixed height so the overview doesn't jump when the rating arrives.
+        Column(modifier = Modifier.fillMaxWidth().height(RATING_SECTION_HEIGHT)) {
+            if (rating != null) RatingSection(rating, onRate)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         Text(
             text =
                 if (expanded)
@@ -216,4 +232,39 @@ fun MovieDetailsScreen(
             }
         }
     }
+}
+
+private val RATING_SECTION_HEIGHT = 64.dp
+
+/** Your stars, plus everyone's average converted to the same five-star scale. */
+@Composable
+private fun RatingSection(rating: RatingStats, onRate: (Int?) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        RatingBar(score = rating.myScore, onScoreChange = onRate)
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = stringResource(R.string.rating_your),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.Gray,
+        )
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    val average = rating.average
+    Text(
+        text =
+            if (average == null || rating.count == 0) stringResource(R.string.rating_none)
+            else
+                pluralStringResource(
+                    R.plurals.rating_average,
+                    rating.count,
+                    "★ " + String.format(Locale.getDefault(), "%.1f", average / 2),
+                    rating.count,
+                ),
+        style = MaterialTheme.typography.bodyMedium,
+        color = Color.LightGray,
+    )
 }

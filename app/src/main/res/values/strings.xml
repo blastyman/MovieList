@@ -4,13 +4,22 @@
     <string name="error_loading_movies">Error: %1$s</string>
     <string name="no_movies_available">No movies available.</string>
     <string name="no_movies_here">No movies here yet.</string>
-    <string name="no_matches">No matches yet.</string>
+    <string name="no_matches">Matches arrive with friend groups: movies everyone in the group liked.</string>
     <string name="read_more">read more</string>
     <string name="no_description">No description available.</string>
-    <string name="match">MATCH!</string>
-    <string name="match_description">%1$s also likes this.</string>
-    <string name="both_like_movie">You and %1$s both like this movie.</string>
     <string name="recommended_for_you">recommended for you</string>
+
+    <!-- Ratings -->
+    <string name="rating_your">your rating</string>
+    <string name="rating_none">No ratings yet. Be the first!</string>
+    <plurals name="rating_average">
+        <item quantity="one">%1$s average · %2$d rating</item>
+        <item quantity="other">%1$s average · %2$d ratings</item>
+    </plurals>
+    <plurals name="rating_star">
+        <item quantity="one">%1$d star</item>
+        <item quantity="other">%1$d stars</item>
+    </plurals>
 
     <!-- Auth -->
     <string name="auth_welcome_back">welcome back</string>
@@ -40,5 +49,4 @@
     <!-- Account -->
     <string name="account_signed_in_as">signed in as %1$s</string>
     <string name="account_log_out">log out</string>
-    <string name="account_demo_users">demo users (for matches)</string>
 </resources>

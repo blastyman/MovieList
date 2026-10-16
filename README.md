@@ -1,8 +1,9 @@
 # MovieList
 
 An Android movie discovery app built with Kotlin and Jetpack Compose. Browse
-recommendations and genres, like or dislike movies, switch between two demo
-users, and see movies both users like.
+recommendations and genres, like or dislike movies and rate them with stars.
+Accounts, likes and ratings live on our own server; friends, chat and groups
+follow in the thesis plan.
 
 ## Setup
 
@@ -42,10 +43,10 @@ and hosting in [docs/SERVER_SETUP.md](docs/SERVER_SETUP.md).
 - `data/remote`: Retrofit endpoints and HTTP client/authentication configuration.
 - `data/repository`: API-backed loading, partial failure handling, and deduplication;
   `BackendAuthRepository` for login/session.
-- `data/preferences`: DataStore-backed user rating persistence and the login token.
-- `domain/model`: immutable movie, user, account, match, and category models.
-- `domain/repository`: repository contracts for movies, ratings and auth.
-- `domain/service`: category grouping and mutual-match calculation.
+- `data/preferences`: the login token (DataStore).
+- `domain/model`: immutable movie, account, reaction, rating, and category models.
+- `domain/repository`: repository contracts for movies, reactions, ratings and auth.
+- `domain/service`: category grouping.
 - `ui/home`: ViewModel, observable screen state, and home rendering.
 - `ui/auth`, `ui/details`, `ui/lists`, `ui/matches`, `ui/user`: feature screens.
 - `ui/navigation`: drawer sections as Navigation Compose routes.
@@ -57,10 +58,10 @@ The backend already speaks camelCase; TMDB's snake_case names are mapped on the 
 
 The ViewModel owns loading, selections, and immutable user updates. Composables
 render state and invoke callbacks; Navigation Compose owns which section is shown.
-State is exposed through `StateFlow`, while user ratings are persisted with
-DataStore and survive process restarts. Movie pages load concurrently from the
-backend and are cached in memory for five minutes. Genre sections assign a movie
-to the first matching genre, preserving the original behavior.
+State is exposed through `StateFlow`. Likes and ratings are saved to the server
+right away and shown before it answers; a failed save is undone with a message.
+Movie pages load concurrently from the backend and are cached in memory for five
+minutes. Genre sections assign a movie to the first matching genre.
 
 ## Verification
 

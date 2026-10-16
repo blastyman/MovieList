@@ -4,14 +4,16 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.movielist.data.preferences.DataStoreTokenStore
-import com.example.movielist.data.preferences.DataStoreUserPreferencesRepository
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
 import com.example.movielist.data.remote.MovieApi
+import com.example.movielist.data.remote.RatingApi
+import com.example.movielist.data.remote.ReactionApi
 import com.example.movielist.data.repository.BackendAuthRepository
 import com.example.movielist.data.repository.BackendMovieRepository
+import com.example.movielist.data.repository.BackendRatingRepository
+import com.example.movielist.data.repository.BackendReactionRepository
 import com.example.movielist.domain.repository.AuthRepository
-import com.example.movielist.domain.repository.UserPreferencesRepository
 import com.example.movielist.ui.auth.AuthViewModel
 import com.example.movielist.ui.home.HomeViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -43,11 +45,13 @@ class AppContainer(context: Context) {
         get() = backendAuthRepository
 
     private val movieRepository by lazy { BackendMovieRepository(backend.create(MovieApi::class.java)) }
-    private val userPreferencesRepository: UserPreferencesRepository =
-        DataStoreUserPreferencesRepository(applicationContext)
+    private val reactionRepository by lazy {
+        BackendReactionRepository(backend.create(ReactionApi::class.java))
+    }
+    private val ratingRepository by lazy { BackendRatingRepository(backend.create(RatingApi::class.java)) }
 
     fun homeViewModelFactory(): ViewModelProvider.Factory =
-        viewModelFactory { HomeViewModel(movieRepository, userPreferencesRepository) }
+        viewModelFactory { HomeViewModel(movieRepository, reactionRepository, ratingRepository) }
 
     fun authViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { AuthViewModel(authRepository) }

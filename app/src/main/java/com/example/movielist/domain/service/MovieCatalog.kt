@@ -1,7 +1,5 @@
 package com.example.movielist.domain.service
 
-import com.example.movielist.domain.model.AppUser
-import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 
@@ -24,23 +22,6 @@ object MovieCatalog {
                                 usedMovieIds.addAll(categoryMovies.map(Movie::id))
                             }
                 }
-            }
-    }
-
-    fun findMatches(
-        movies: List<Movie>,
-        users: List<AppUser>,
-        selectedUserIndex: Int,
-    ): List<Match> {
-        val currentUser = users[selectedUserIndex]
-        return users
-            .filterIndexed { index, _ -> index != selectedUserIndex }
-            .flatMap { otherUser ->
-                movies
-                    .filter { movie ->
-                        movie.id in currentUser.likedMovieIds && movie.id in otherUser.likedMovieIds
-                    }
-                    .map { movie -> Match(otherUser.name, movie.id, movie.title, movie.posterPath) }
             }
     }
 }

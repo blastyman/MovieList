@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.movielist.R
-import com.example.movielist.domain.model.AppUser
 import com.example.movielist.ui.components.ScreenHeader
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
@@ -34,9 +32,6 @@ import com.example.movielist.ui.theme.MovieSurface
 fun UserScreen(
     accountUsername: String?,
     onLogout: () -> Unit,
-    users: List<AppUser>,
-    selectedUserIndex: Int,
-    onUserSelected: (Int) -> Unit,
     onMenuClick: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
@@ -70,47 +65,6 @@ fun UserScreen(
 
                 TextButton(onClick = onLogout) {
                     Text(text = stringResource(R.string.account_log_out), color = MovieRed)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Local demo users that drive the current matches feature (replaced by friend groups in Phase 9).
-        Text(
-            text = stringResource(R.string.account_demo_users),
-            color = Color.Gray,
-            style = MaterialTheme.typography.labelLarge,
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        users.forEachIndexed { index, user ->
-            Card(
-                onClick = { onUserSelected(index) },
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = if (index == selectedUserIndex) MovieRed else MovieSurface
-                    ),
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = Color.White,
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Text(
-                        text = user.name,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
                 }
             }
         }

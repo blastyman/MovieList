@@ -50,7 +50,7 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | PUT / DELETE | `/movies/{id}/reaction` | JWT | `{reaction: LIKE\|DISLIKE}`; replaces any earlier one; a LIKE answers with `matchedPeople` (up to 10 others who like it, each with `user` and `sharedLikes`, most likes in common first), `matchedCount`, and `completedGroups` (your groups in which everyone now likes it) |
 | GET | `/matches` | JWT | movies you like that anyone else (friend or stranger) likes too, newest like first, with `people` (best 10) and `peopleCount` |
 | GET / POST | `/groups` | JWT | your groups, newest first / `{name, memberIds}` creates one (201); members must be your friends; 409 `GROUP_FULL` over 10 people, you included |
-| GET / PATCH | `/groups/{id}` | JWT | the group with every member, owner first / `{name}` renames it (owner only); 404 if you're not in it |
+| GET / PATCH / DELETE | `/groups/{id}` | JWT | the group with every member, owner first / `{name}` renames it / disbands it for everyone (204); renaming and disbanding are owner only; 404 if you aren't in it |
 | POST | `/groups/{id}/members` | JWT | `{userId}`: add one of your friends; 409 `GROUP_FULL` at 10 (checked under a row lock, so racing adds can't make 11) |
 | DELETE | `/groups/{id}/members/{userId}` | JWT | owner removes someone (200 + group), or you leave (204); an owner who leaves hands over to the earliest member, the last one out deletes the group |
 | GET | `/groups/{id}/matches` | JWT | movies every member likes, newest match first |

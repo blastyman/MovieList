@@ -24,6 +24,10 @@ fun Route.groupRoutes(groupService: GroupService) {
             route("/{groupId}") {
                 get { call.respond(groupService.group(call.userId, call.groupId())) }
                 patch { call.respond(groupService.rename(call.userId, call.groupId(), call.receive())) }
+                delete {
+                    groupService.disband(call.userId, call.groupId())
+                    call.respond(HttpStatusCode.NoContent)
+                }
                 get("/matches") { call.respond(groupService.matches(call.userId, call.groupId())) }
                 post("/members") {
                     val body = call.receive<AddMemberRequest>()

@@ -183,7 +183,22 @@ class GroupTest {
     }
 
     @Test
-    fun `group matches are movies every member likes`() = apiTest { client ->
+    fun `only the owner can disband, and it's gone for everyone`() = apiTest { client ->
+        val (owner, friends) = client.ownerWithFriends(2)
+        val group = client.createGroup(owner, "Short-lived", friends).body<GroupDto>()
+
+        assertEquals(HttpStatusCode.Forbidden, client.delete("/groups/${group.id}") { bearerAuth(friends[0].token) }.status)
+        assertEquals(HttpStatusCode.NoContent, client.delete("/groups/${group.id}") { bearerAuth(owner.token) }.status)
+
+        assertEquals(HttpStatusCode.NotFound, client.group(friends[0], group.id).status)
+        assertTrue(client.get("/groups") { bearerAuth(friends[1].token) }.body<List<GroupDto>>().isEmpty())
+        assertEquals(0, TestDatabase.count("SELECT count(*) FROM conversations WHERE group_id = '${group.id}'"))
+        assertEquals(0, TestDatabase.count("SELECT count(*) FROM group_members WHERE group_id = '${group.id}'"))
+        assertEquals(HttpStatusCode.NotFound, client.delete("/groups/${group.id}") { bearerAuth(owner.token) }.status)
+    }
+
+    @Test
+    fun `group matches are movies every member likes`()= apiTest { client ->
         val (owner, friends) = client.ownerWithFriends(2)
         val group = client.createGroup(owner, "Taste", friends).body<GroupDto>()
         val all = uniqueMovieId()

@@ -147,6 +147,15 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
         if (userId == me) null else group(me, groupId)
     }
 
+    /** The owner deletes the group for everyone, its chat included. */
+    suspend fun disband(me: UUID, groupId: UUID) {
+        db.query {
+            lockGroup(groupId)
+            requireOwner(me, groupId)
+            FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to members and its conversation
+        }
+    }
+
     /** Movies every member likes, the newest match first. Needs at least two members. */
     suspend fun matches(me: UUID, groupId: UUID): List<GroupMatchDto> = db.query {
         requireMember(me, groupId)

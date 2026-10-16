@@ -24,7 +24,8 @@ Phase 3 ✅ (movies via `/movies/*` on the backend, TMDB token out of the app, N
 Phase 4 ✅ (likes/dislikes and 1–10 ratings per account on the server; demo users and local matches removed —
 matches return with friend groups in Phase 9) ·
 Phase 5 ✅ (comments under movies: newest first with "load older", author-only edit and soft delete,
-one level of replies with @mentions — migration V2 adds `comments.parent_id`).
+one level of replies with @mentions — migration V2 adds `comments.parent_id`) ·
+Phase 6 ✅ (trailers: `/movies/{id}/trailers`, in-app YouTube player with an "Open in YouTube" fallback).
 
 ## 1. Required features
 

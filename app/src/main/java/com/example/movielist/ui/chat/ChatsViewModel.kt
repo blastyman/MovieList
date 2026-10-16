@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.movielist.domain.model.ChatEvent
 import com.example.movielist.domain.model.Conversation
+import com.example.movielist.domain.model.Message
 import com.example.movielist.domain.repository.ChatConnection
 import com.example.movielist.domain.repository.ChatRepository
 import com.example.movielist.ui.utils.toUserMessage
@@ -22,7 +23,11 @@ data class ChatsUiState(
     val loaded: Boolean = false,
 )
 
-/** Your chats, most recently active first; refreshed when a message arrives live. */
+/**
+ * Your chats, most recently active first. A message arriving live updates its chat in place
+ * (last message, unread count, moved to the top) instead of fetching the whole list again;
+ * only a chat the list doesn't have yet makes it reload.
+ */
 class ChatsViewModel(
     private val chats: ChatRepository,
     connection: ChatConnection,
@@ -35,13 +40,21 @@ class ChatsViewModel(
     /** A message came in while a load was running; load once more afterwards. */
     private var reloadAfter = false
 
+    /** Who "you" are, so your own messages (from another device) don't count as unread. */
+    private var myId: String? = null
+
     init {
         viewModelScope.launch {
             connection.events.collect { event ->
-                // The server has the right order and unread counts; ask it again.
-                if (event is ChatEvent.MessageReceived) load()
+                if (event is ChatEvent.MessageReceived) onMessage(event.message)
             }
         }
+    }
+
+    /** Opens the list for [myId]; called each time the screen opens. */
+    fun start(myId: String?) {
+        this.myId = myId
+        load()
     }
 
     fun load() {
@@ -64,5 +77,21 @@ class ChatsViewModel(
                 load()
             }
         }
+    }
+
+    private fun onMessage(message: Message) {
+        val current = uiState.conversations
+        val chat = current.firstOrNull { it.id == message.conversationId }
+        if (chat == null) {
+            if (uiState.loaded) load() // a new chat, or one we haven't seen
+            return
+        }
+        if (chat.lastMessage?.id == message.id) return // already shown
+        val updated = chat.copy(
+            lastMessage = message,
+            updatedAt = message.createdAt,
+            unreadCount = chat.unreadCount + if (message.senderId == myId) 0 else 1,
+        )
+        _uiState.update { it.copy(conversations = listOf(updated) + current.filterNot { c -> c.id == chat.id }) }
     }
 }

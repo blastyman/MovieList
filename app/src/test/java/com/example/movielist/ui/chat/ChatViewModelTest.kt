@@ -46,7 +46,12 @@ private class FakeChat : ChatRepository, ChatConnection {
     fun message(body: String, from: String = "ben", conversationId: String = "c1") =
         Message("m${nextId++}", conversationId, from, body, Instant.ofEpochSecond(nextId.toLong()))
 
-    override suspend fun conversations() = listOf(conversation)
+    var conversationLoads = 0
+
+    override suspend fun conversations(): List<Conversation> {
+        conversationLoads++
+        return listOf(conversation)
+    }
 
     override suspend fun conversation(conversationId: String) = conversation
 
@@ -226,17 +231,28 @@ class ChatViewModelTest {
         }
 
     @Test
-    fun theChatsListReloadsWhenAMessageArrives() =
+    fun theChatsListUpdatesInPlaceWhenAMessageArrives() =
         runTest(dispatcher) {
             val viewModel = ChatsViewModel(chat, chat)
-            viewModel.load()
+            viewModel.start("me")
             advanceUntilIdle()
             assertEquals(listOf("c1"), viewModel.uiState.conversations.map { it.id })
+            val loadsBefore = chat.conversationLoads
 
-            chat.history.clear()
-            chat.events.emit(ChatEvent.MessageReceived(chat.message("new"), null))
+            val fromBen = chat.message("new")
+            chat.events.emit(ChatEvent.MessageReceived(fromBen, null))
+            chat.events.emit(ChatEvent.MessageReceived(fromBen, null)) // the same one again changes nothing
+            chat.events.emit(ChatEvent.MessageReceived(chat.message("mine", from = "me"), null))
             advanceUntilIdle()
-            assertTrue(viewModel.uiState.loaded)
-            assertEquals(false, viewModel.uiState.isLoading)
+
+            val updated = viewModel.uiState.conversations.single()
+            assertEquals("mine", updated.lastMessage?.body)
+            assertEquals(1, updated.unreadCount) // ben's, once; your own don't count
+            assertEquals(loadsBefore, chat.conversationLoads) // no reload
+
+            // A chat the list doesn't know yet does make it reload.
+            chat.events.emit(ChatEvent.MessageReceived(chat.message("hi", conversationId = "c2"), null))
+            advanceUntilIdle()
+            assertEquals(loadsBefore + 1, chat.conversationLoads)
         }
 }

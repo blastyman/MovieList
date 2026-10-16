@@ -387,7 +387,7 @@ private fun SectionNavHost(
         }
         composable(AppSection.CHATS.route) {
             val chats: ChatsViewModel = viewModel(factory = chatFactory)
-            LaunchedEffect(Unit) { chats.load() }
+            LaunchedEffect(Unit) { chats.start(accountId) }
             ChatsScreen(
                 state = chats.uiStateFlow.collectAsStateWithLifecycle().value,
                 myId = accountId,

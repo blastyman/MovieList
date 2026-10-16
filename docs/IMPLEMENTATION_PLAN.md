@@ -20,7 +20,9 @@ Everything social (users, friends, chat, groups, comments, ratings, likes) must 
 server. The phone becomes a client of **our** API; it should no longer talk to TMDB directly.
 
 **Progress:** Phase 1 ✅ · Phase 2 ✅ (backend auth + login/register screens, logout in the user screen) ·
-Phase 3 ✅ (movies via `/movies/*` on the backend, TMDB token out of the app, Navigation Compose).
+Phase 3 ✅ (movies via `/movies/*` on the backend, TMDB token out of the app, Navigation Compose) ·
+Phase 4 ✅ (likes/dislikes and 1–10 ratings per account on the server; demo users and local matches removed —
+matches return with friend groups in Phase 9).
 
 ## 1. Required features
 
@@ -233,7 +235,7 @@ Lists use cursor pagination: `?limit=20&before=<timestamp or id>`.
 | GET | `/groups/{id}` | details + members |
 | POST | `/groups/{id}/members` | `{userId}` — only friends of the inviter; 409 `GROUP_FULL` at 10 |
 | DELETE | `/groups/{id}/members/{userId}` | owner removes, or self leaves; owner leaving transfers ownership or deletes the group |
-| GET | `/groups/{id}/matches` | movies liked by **all** members (server-side version of the app's current demo-user matches) |
+| GET | `/groups/{id}/matches` | movies liked by **all** members (replaces the old local demo-user matches, removed in Phase 4) |
 
 ### Chat
 | Method | Path | Notes |
@@ -472,9 +474,10 @@ including the owner. Enforce the limit on the server inside a transaction that l
 group row, return 409 GROUP_FULL, and only allow inviting friends. Creating a group also
 creates its GROUP conversation. Implement GET /groups/{id}/matches (movies liked by every
 member). Android: groups list, create-group screen with friend picker and an "n/10" counter,
-group details (members, leave/remove), and make the Matches screen and match popup per group,
-replacing the local demo users (remove the demo-user switcher from UserScreen). Include a test that 11 members is rejected, including when two
-invites race.
+group details (members, leave/remove), and fill the Matches screen per group. Bring back a
+"MATCH!" popup when a like completes a group match (the old demo-user MatchPopup.kt, removed
+in Phase 4, is in git history). Include a test that 11 members is rejected, including when
+two invites race.
 ```
 
 ### Prompt — Phase 10: chat

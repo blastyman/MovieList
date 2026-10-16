@@ -25,7 +25,9 @@ Phase 4 ✅ (likes/dislikes and 1–10 ratings per account on the server; demo u
 matches return with friend groups in Phase 9) ·
 Phase 5 ✅ (comments under movies: newest first with "load older", author-only edit and soft delete,
 one level of replies with @mentions — migration V2 adds `comments.parent_id`) ·
-Phase 6 ✅ (trailers: `/movies/{id}/trailers`, in-app YouTube player with an "Open in YouTube" fallback).
+Phase 6 ✅ (trailers: `/movies/{id}/trailers`, in-app YouTube player with an "Open in YouTube" fallback) ·
+Phase 7 ✅ (search for movies and people, public profiles, own profile with display-name editing;
+migration V3 adds trigram indexes for name search).
 
 ## 1. Required features
 

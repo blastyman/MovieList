@@ -229,7 +229,7 @@ private fun MemberRow(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        UserAvatar(member.name)
+        UserAvatar(member.name, avatar = member.avatar)
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(member.name, color = Color.White, style = MaterialTheme.typography.titleMedium)
@@ -345,7 +345,7 @@ private fun GroupDialogs(group: Group, state: GroupUiState, myId: String?, actio
                         LazyColumn(modifier = Modifier.heightIn(max = 380.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             items(addable, key = { it.id }) { friend ->
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                    UserAvatar(friend.name, size = 36.dp)
+                                    UserAvatar(friend.name, size = 36.dp, avatar = friend.avatar)
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(friend.name, color = Color.White, modifier = Modifier.weight(1f))
                                     if (friend.id in state.busy) {

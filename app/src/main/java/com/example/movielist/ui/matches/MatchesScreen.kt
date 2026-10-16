@@ -144,7 +144,7 @@ private fun PersonChip(person: MatchPerson, onClick: () -> Unit) {
                 .clickable(onClickLabel = stringResource(R.string.match_open_profile, person.user.name), onClick = onClick)
                 .padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
     ) {
-        UserAvatar(person.user.name, size = 32.dp)
+        UserAvatar(person.user.name, size = 32.dp, avatar = person.user.avatar)
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(

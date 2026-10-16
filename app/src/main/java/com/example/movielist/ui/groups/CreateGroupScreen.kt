@@ -161,7 +161,7 @@ fun FriendPicker(
                         .clickable(enabled = enabled) { onToggle(friend) }
                         .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
-                UserAvatar(friend.name)
+                UserAvatar(friend.name, avatar = friend.avatar)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(friend.name, color = if (enabled) Color.White else Color.Gray, style = MaterialTheme.typography.titleMedium)

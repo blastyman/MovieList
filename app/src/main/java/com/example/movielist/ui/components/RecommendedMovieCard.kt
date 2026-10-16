@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.movielist.domain.model.Movie
+import com.example.movielist.ui.settings.LocalAppSettings
 import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
@@ -53,6 +54,7 @@ fun RecommendedMovieCard(
 ) {
     val latestOnLike by rememberUpdatedState(onLike)
     val latestOnDislike by rememberUpdatedState(onDislike)
+    val latestSwipeRightToLike by rememberUpdatedState(LocalAppSettings.current.swipeRightToLike)
     var offsetX by remember(movie.id) { mutableFloatStateOf(0f) }
 
     val animatedOffsetX by
@@ -72,9 +74,11 @@ fun RecommendedMovieCard(
                     detectHorizontalDragGestures(
                         onHorizontalDrag = { _, dragAmount -> offsetX += dragAmount },
                         onDragEnd = {
+                            // Which way is "like" is a setting: left (the original) or right (Tinder).
+                            val towardsLike = if (latestSwipeRightToLike) offsetX else -offsetX
                             when {
-                                offsetX > 300f -> latestOnDislike()
-                                offsetX < -300f -> latestOnLike()
+                                towardsLike > 300f -> latestOnLike()
+                                towardsLike < -300f -> latestOnDislike()
                             }
                             offsetX = 0f
                         },

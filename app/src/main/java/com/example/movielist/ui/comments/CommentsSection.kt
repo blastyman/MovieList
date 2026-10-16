@@ -52,6 +52,7 @@ import com.example.movielist.R
 import com.example.movielist.domain.model.Comment
 import com.example.movielist.domain.model.MAX_COMMENT_LENGTH
 import com.example.movielist.domain.model.RatingStats
+import com.example.movielist.ui.components.UserAvatar
 import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
@@ -314,7 +315,9 @@ private fun CommentCard(
         colors = CardDefaults.cardColors(containerColor = MovieSurface),
         shape = RoundedCornerShape(16.dp),
     ) {
-        Row(modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 2.dp, end = 4.dp)) {
+        Row(modifier = Modifier.padding(start = 12.dp, top = 10.dp, bottom = 2.dp, end = 4.dp)) {
+            UserAvatar(comment.authorName, size = 30.dp, avatar = comment.authorAvatar)
+            Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

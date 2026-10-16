@@ -16,12 +16,15 @@ data class UserSummary(
     val username: String,
     val displayName: String?,
     val friendship: FriendshipState,
+    val avatar: Avatar = Avatar.NONE,
 ) {
     val name: String
         get() = displayName?.takeIf { it.isNotBlank() } ?: username
 }
 
-data class ProfileStats(val likes: Int, val ratings: Int, val comments: Int, val friends: Int)
+data class ProfileStats(
+    /** Null when their likes are private to you. */
+    val likes: Int?, val ratings: Int, val comments: Int, val friends: Int)
 
 data class UserProfile(
     val id: String,
@@ -33,6 +36,13 @@ data class UserProfile(
     val stats: ProfileStats,
     /** Newest first. */
     val recentLikes: List<Movie>,
+    val avatar: Avatar = Avatar.NONE,
+    /** Their likes are private and you aren't friends. */
+    val likesHidden: Boolean = false,
+    /** Their privacy settings let you send a friend request (or you can answer theirs). */
+    val canAddFriend: Boolean = true,
+    /** You can chat one-to-one: friends, and neither has messages turned off. */
+    val canMessage: Boolean = false,
 ) {
     val name: String
         get() = displayName?.takeIf { it.isNotBlank() } ?: username

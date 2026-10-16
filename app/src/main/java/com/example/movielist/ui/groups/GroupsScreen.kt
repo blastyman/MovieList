@@ -138,6 +138,7 @@ fun MemberAvatars(group: Group, modifier: Modifier = Modifier) {
             UserAvatar(
                 member.name,
                 size = 34.dp,
+                avatar = member.avatar,
                 modifier =
                     Modifier.offset(x = (-10 * index).dp)
                         .border(2.dp, MovieSurface, CircleShape)

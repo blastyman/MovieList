@@ -211,7 +211,7 @@ private fun PersonRow(person: UserSummary, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        UserAvatar(person.name)
+        UserAvatar(person.name, avatar = person.avatar)
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(person.name, color = Color.White, style = MaterialTheme.typography.titleMedium)

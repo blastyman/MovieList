@@ -146,7 +146,7 @@ class AuthViewModelTest {
 
     private class FakeAuthRepository(
         private val result: Result<Account> =
-            Result.success(Account("1", "someone", "someone@example.com", null, null))
+            Result.success(Account("1", "someone", "someone@example.com", null))
     ) : AuthRepository {
         var calls = 0
 
@@ -159,8 +159,6 @@ class AuthViewModelTest {
         override suspend fun login(login: String, password: String) = result.also { calls++ }
 
         override suspend fun refreshAccount() = result
-
-        override suspend fun updateDisplayName(displayName: String) = result
 
         override suspend fun logout() = Unit
     }

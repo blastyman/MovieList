@@ -3,6 +3,7 @@ package com.example.movielist
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.movielist.data.preferences.DataStoreAppSettings
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
@@ -30,6 +31,7 @@ import com.example.movielist.data.repository.BackendRatingRepository
 import com.example.movielist.data.repository.BackendReactionRepository
 import com.example.movielist.data.repository.BackendTrailerRepository
 import com.example.movielist.data.repository.BackendUserRepository
+import com.example.movielist.domain.repository.AppSettingsRepository
 import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.ui.auth.AuthViewModel
 import com.example.movielist.ui.chat.ChatViewModel
@@ -43,6 +45,7 @@ import com.example.movielist.ui.home.HomeViewModel
 import com.example.movielist.ui.matches.MatchesViewModel
 import com.example.movielist.ui.profile.ProfileViewModel
 import com.example.movielist.ui.search.SearchViewModel
+import com.example.movielist.ui.settings.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,6 +58,9 @@ class AppContainer(context: Context) {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val tokenStore = DataStoreTokenStore(applicationContext)
+
+    /** How the app behaves on this phone (swipe direction, trailers, match popups). */
+    val appSettings: AppSettingsRepository by lazy { DataStoreAppSettings(applicationContext, appScope) }
 
     /** One HTTP client for every backend call, chat included, so all of them carry the login token. */
     private val httpClient by lazy {
@@ -100,7 +106,7 @@ class AppContainer(context: Context) {
         viewModelFactory { SearchViewModel(movieSearchRepository, userRepository) }
 
     fun profileViewModelFactory(): ViewModelProvider.Factory =
-        viewModelFactory { ProfileViewModel(userRepository, authRepository, friendRepository) }
+        viewModelFactory { ProfileViewModel(userRepository, friendRepository) }
 
     fun friendsViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { FriendsViewModel(friendRepository) }
@@ -138,6 +144,9 @@ class AppContainer(context: Context) {
                 return viewModel as T
             }
         }
+
+    fun settingsViewModelFactory(): ViewModelProvider.Factory =
+        viewModelFactory { SettingsViewModel(backendAuthRepository, appSettings) }
 
     fun authViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { AuthViewModel(authRepository) }

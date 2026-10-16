@@ -24,7 +24,7 @@ private class FakeAuth : AuthRepository {
 
     override suspend fun login(login: String, password: String): Result<Account> {
         loggedInWith = login to password
-        val account = Account("1", login, "$login@example.test", null, null)
+        val account = Account("1", login, "$login@example.test", null)
         this.account.value = account
         session.value = SessionState.LoggedIn
         return Result.success(account)
@@ -33,8 +33,6 @@ private class FakeAuth : AuthRepository {
     override suspend fun register(username: String, email: String, password: String) = login(username, password)
 
     override suspend fun refreshAccount() = Result.failure<Account>(IllegalStateException("not used"))
-
-    override suspend fun updateDisplayName(displayName: String) = Result.failure<Account>(IllegalStateException("not used"))
 
     override suspend fun logout() {
         session.value = SessionState.LoggedOut

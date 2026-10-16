@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.movielist.R
+import com.example.movielist.domain.model.Avatar
 import com.example.movielist.domain.model.Conversation
 import com.example.movielist.domain.model.ConversationType
 import com.example.movielist.ui.components.ScreenHeader
@@ -150,7 +151,7 @@ fun ConversationAvatar(conversation: Conversation, size: Dp = 48.dp) {
             Icon(Icons.Default.Groups, contentDescription = null, tint = MovieRed, modifier = Modifier.size(size * 0.55f))
         }
     } else {
-        UserAvatar(conversation.title, size = size)
+        UserAvatar(conversation.title, size = size, avatar = conversation.members.firstOrNull()?.avatar ?: Avatar.NONE)
     }
 }
 

@@ -34,6 +34,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.movielist.R
+import com.example.movielist.domain.model.Account
+import com.example.movielist.domain.model.Avatar
 import com.example.movielist.domain.model.Reaction
 import com.example.movielist.ui.chat.ChatScreen
 import com.example.movielist.ui.chat.ChatViewModel
@@ -63,6 +65,9 @@ import com.example.movielist.ui.profile.ProfileScreen
 import com.example.movielist.ui.profile.ProfileViewModel
 import com.example.movielist.ui.search.SearchScreen
 import com.example.movielist.ui.search.SearchViewModel
+import com.example.movielist.ui.settings.LocalAppSettings
+import com.example.movielist.ui.settings.SettingsScreen
+import com.example.movielist.ui.settings.SettingsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -75,13 +80,13 @@ fun HomeScreen(
     matchesFactory: ViewModelProvider.Factory,
     groupsFactory: ViewModelProvider.Factory,
     chatFactory: ViewModelProvider.Factory,
+    settingsFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     /** The signed-in account; null until it has loaded. */
-    accountId: String?,
-    /** Your name as others see it, for the match popup. */
-    accountName: String?,
+    account: Account?,
     onLogout: () -> Unit,
 ) {
+    val accountId = account?.id
     val viewModel: HomeViewModel = viewModel(key = viewModelKey, factory = factory)
     val state = viewModel.uiStateFlow.collectAsStateWithLifecycle().value
     val commentsViewModel: CommentsViewModel =
@@ -145,6 +150,8 @@ fun HomeScreen(
                             matchesFactory = matchesFactory,
                             groupsFactory = groupsFactory,
                             chatFactory = chatFactory,
+                            settingsFactory = settingsFactory,
+                            account = account,
                             snackbarHost = snackbarHost,
                             onLogout = onLogout,
                             openMenu = openMenu,
@@ -184,11 +191,14 @@ fun HomeScreen(
                     }
                 }
 
-                // Above everything, details included.
-                state.matchPopup?.let { match ->
+                // Above everything, details included, unless match popups are turned off.
+                val matchPopups = LocalAppSettings.current.matchPopups
+                LaunchedEffect(state.matchPopup, matchPopups) { if (!matchPopups && state.matchPopup != null) viewModel.dismissMatch() }
+                state.matchPopup?.takeIf { matchPopups }?.let { match ->
                     MatchPopup(
                         match = match,
-                        myName = accountName,
+                        myName = account?.name,
+                        myAvatar = account?.avatar ?: Avatar.NONE,
                         onOpenProfile = { user ->
                             viewModel.dismissMatch()
                             viewModel.closeDetails()
@@ -228,6 +238,8 @@ private fun SectionNavHost(
     matchesFactory: ViewModelProvider.Factory,
     groupsFactory: ViewModelProvider.Factory,
     chatFactory: ViewModelProvider.Factory,
+    settingsFactory: ViewModelProvider.Factory,
+    account: Account?,
     snackbarHost: SnackbarHostState,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
@@ -380,11 +392,32 @@ private fun SectionNavHost(
             val userId = entry.arguments?.getString(CHAT_USER_ID).orEmpty()
             ChatRoute(chatFactory, accountId, snackbarHost, navController) { chat, me -> chat.openDirect(userId, me) }
         }
+        composable(SETTINGS_ROUTE) {
+            val settings: SettingsViewModel = viewModel(factory = settingsFactory)
+            val settingsState = settings.uiStateFlow.collectAsStateWithLifecycle().value
+            ShowMessage(settingsState.edit.message, snackbarHost, settings::messageShown)
+            SettingsScreen(
+                state = settingsState,
+                viewModel = settings,
+                onBack = { navController.popBackStack() },
+                onLogout = onLogout,
+            )
+        }
         composable(AppSection.USER.route) {
             if (accountId == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
-                ProfileRoute(accountId, profileFactory, viewModel, onMenuClick = openMenu, onBack = null, onLogout = onLogout, onMessage = {})
+                // Keyed on the account, so changes made in settings show when you come back.
+                ProfileRoute(
+                    accountId,
+                    profileFactory,
+                    viewModel,
+                    onMenuClick = openMenu,
+                    onBack = null,
+                    onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
+                    onMessage = {},
+                    refreshKey = account,
+                )
             }
         }
         composable(PROFILE_ROUTE) { entry ->
@@ -395,7 +428,7 @@ private fun SectionNavHost(
                 viewModel,
                 onMenuClick = null,
                 onBack = { navController.popBackStack() },
-                onLogout = onLogout,
+                onOpenSettings = {},
                 onMessage = { id -> navController.navigateOrBack(DIRECT_CHAT_ROUTE, CHAT_USER_ID, id, directChatRoute(id)) },
             )
         }
@@ -438,6 +471,9 @@ private const val GROUP_ROUTE = "group/{$GROUP_ID}"
 private const val NEW_GROUP_ROUTE = "groups/new"
 
 private fun groupRoute(groupId: String) = "group/$groupId"
+
+/** Your settings, opened from your own profile. */
+private const val SETTINGS_ROUTE = "settings"
 
 /** A chat by id, `chat/<conversationId>`, or the one-to-one chat with a friend, `chat/with/<userId>`. */
 private const val CHAT_ID = "conversationId"
@@ -513,22 +549,20 @@ private fun ProfileRoute(
     homeViewModel: HomeViewModel,
     onMenuClick: (() -> Unit)?,
     onBack: (() -> Unit)?,
-    onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     onMessage: (userId: String) -> Unit,
+    /** Reloads the profile when this changes (your own, after editing it in settings). */
+    refreshKey: Any? = null,
 ) {
     val profile: ProfileViewModel = viewModel(factory = profileFactory)
-    LaunchedEffect(userId) { profile.load(userId) }
+    LaunchedEffect(userId, refreshKey) { profile.load(userId, refresh = refreshKey != null) }
     ProfileScreen(
         state = profile.uiStateFlow.collectAsStateWithLifecycle().value,
         onRetry = profile::retry,
         onMovieClick = { movie -> homeViewModel.selectMovie(MovieCategory.PROFILE, movie) },
         onMenuClick = onMenuClick,
         onBack = onBack,
-        onEditName = profile::startEditName,
-        onNameDraftChange = profile::onNameDraftChange,
-        onSaveName = profile::saveName,
-        onCancelEditName = profile::cancelEditName,
-        onLogout = onLogout,
+        onOpenSettings = onOpenSettings,
         friendActions =
             ProfileFriendActions(
                 add = profile::addFriend,

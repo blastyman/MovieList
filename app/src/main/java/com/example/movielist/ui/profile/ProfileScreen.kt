@@ -21,7 +21,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,8 +60,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * A user's profile. Your own (the "user" section) has the drawer menu, "edit name" and
- * "log out"; anyone else's (opened from search) has a back arrow.
+ * A user's profile. Your own (the "user" section) has the drawer menu and a way into settings;
+ * anyone else's has a back arrow, and the friend and message buttons their privacy allows.
  */
 @Composable
 fun ProfileScreen(
@@ -68,11 +70,7 @@ fun ProfileScreen(
     onMovieClick: (Movie) -> Unit,
     onMenuClick: (() -> Unit)?,
     onBack: (() -> Unit)?,
-    onEditName: () -> Unit,
-    onNameDraftChange: (String) -> Unit,
-    onSaveName: () -> Unit,
-    onCancelEditName: () -> Unit,
-    onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     friendActions: ProfileFriendActions,
 ) {
     Column(
@@ -92,7 +90,7 @@ fun ProfileScreen(
 
         val profile = state.profile
         when {
-            profile != null -> ProfileContent(profile, state, onMovieClick, onEditName, onLogout, friendActions)
+            profile != null -> ProfileContent(profile, state, onMovieClick, onOpenSettings, friendActions)
             state.error != null ->
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.error, color = Color.LightGray, textAlign = TextAlign.Center)
@@ -119,40 +117,6 @@ fun ProfileScreen(
         )
     }
 
-    val draft = state.nameDraft
-    if (draft != null) {
-        AlertDialog(
-            onDismissRequest = onCancelEditName,
-            title = { Text(stringResource(R.string.profile_edit_name)) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = draft,
-                        onValueChange = onNameDraftChange,
-                        singleLine = true,
-                        placeholder = { Text(state.profile?.username.orEmpty()) },
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                focusedBorderColor = MovieRed,
-                                cursorColor = MovieRed,
-                            ),
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(stringResource(R.string.profile_edit_name_hint), color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                    state.message?.let { Text(it, color = MovieRed, style = MaterialTheme.typography.bodySmall) }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onSaveName, enabled = !state.isSavingName) {
-                    Text(stringResource(R.string.comments_save), color = MovieRed)
-                }
-            },
-            dismissButton = { TextButton(onClick = onCancelEditName) { Text(stringResource(R.string.comments_cancel)) } },
-            containerColor = MovieSurface,
-        )
-    }
 }
 
 @Composable
@@ -160,13 +124,12 @@ private fun ProfileContent(
     profile: UserProfile,
     state: ProfileUiState,
     onMovieClick: (Movie) -> Unit,
-    onEditName: () -> Unit,
-    onLogout: () -> Unit,
+    onOpenSettings: () -> Unit,
     friendActions: ProfileFriendActions,
 ) {
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(modifier = Modifier.height(16.dp))
-        UserAvatar(profile.name, size = 96.dp)
+        UserAvatar(profile.name, size = 96.dp, avatar = profile.avatar)
         Spacer(modifier = Modifier.height(12.dp))
         Text(profile.name, color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text("@${profile.username}", color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
@@ -178,8 +141,8 @@ private fun ProfileContent(
         )
         if (!profile.isMe) {
             Spacer(modifier = Modifier.height(14.dp))
-            FriendshipButton(profile.friendship, busy = state.isFriendBusy, actions = friendActions)
-            if (state.message != null && state.nameDraft == null) {
+            FriendshipButton(profile, busy = state.isFriendBusy, actions = friendActions)
+            if (state.message != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(state.message, color = MovieRed, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
@@ -205,7 +168,13 @@ private fun ProfileContent(
 
     Text(stringResource(R.string.profile_recent_likes), color = Color.White, style = MaterialTheme.typography.titleLarge)
     Spacer(modifier = Modifier.height(12.dp))
-    if (profile.recentLikes.isEmpty()) {
+    if (profile.likesHidden) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.profile_likes_private), color = Color.Gray)
+        }
+    } else if (profile.recentLikes.isEmpty()) {
         Text(stringResource(R.string.profile_no_likes), color = Color.Gray)
     } else {
         Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -215,27 +184,20 @@ private fun ProfileContent(
 
     if (profile.isMe) {
         Spacer(modifier = Modifier.height(28.dp))
-        OutlinedButton(onClick = onEditName, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White)
+        OutlinedButton(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.profile_edit_name), color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = onLogout,
-            colors = ButtonDefaults.buttonColors(containerColor = MovieButton),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.account_log_out), color = MovieRed)
+            Text(stringResource(R.string.settings_open), color = Color.White)
         }
     }
     Spacer(modifier = Modifier.height(24.dp))
 }
 
 @Composable
-private fun Stat(value: Int, label: String) {
+private fun Stat(value: Int?, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value.toString(), color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        // Null: hidden by their privacy settings.
+        Text(value?.toString() ?: "–", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(label, color = Color.Gray, style = MaterialTheme.typography.labelMedium)
     }
 }
@@ -259,17 +221,22 @@ data class ProfileFriendActions(
 
 /** The one thing you can do next with this person, as a button (or two, to answer a request). */
 @Composable
-private fun FriendshipButton(state: FriendshipState, busy: Boolean, actions: ProfileFriendActions) {
+private fun FriendshipButton(profile: UserProfile, busy: Boolean, actions: ProfileFriendActions) {
     if (busy) {
         CircularProgressIndicator(modifier = Modifier.size(32.dp), color = MovieRed)
         return
     }
-    when (state) {
+    when (profile.friendship) {
         FriendshipState.NONE ->
-            Button(onClick = actions.add, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
-                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.friends_add), color = Color.White)
+            if (!profile.canAddFriend) {
+                // Their "who can add me" setting rules you out.
+                Text(stringResource(R.string.profile_requests_closed), color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Button(onClick = actions.add, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.friends_add), color = Color.White)
+                }
             }
         FriendshipState.REQUEST_SENT ->
             OutlinedButton(onClick = actions.cancelRequest) {
@@ -286,10 +253,13 @@ private fun FriendshipButton(state: FriendshipState, busy: Boolean, actions: Pro
             }
         FriendshipState.FRIENDS ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = actions.message, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.profile_message), color = Color.White)
+                // Hidden when either of you has one-to-one messages turned off.
+                if (profile.canMessage) {
+                    Button(onClick = actions.message, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.profile_message), color = Color.White)
+                    }
                 }
                 OutlinedButton(onClick = actions.askUnfriend) {
                     Icon(Icons.Default.Check, contentDescription = null, tint = MovieRed)

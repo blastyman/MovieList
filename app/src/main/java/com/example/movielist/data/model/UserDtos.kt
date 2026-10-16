@@ -14,27 +14,35 @@ data class UserSummaryDto(
     val username: String,
     val displayName: String?,
     val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
     val friendship: FriendshipState?,
 ) {
-    fun toUserSummary() = UserSummary(id, username, displayName, friendship ?: FriendshipState.NONE)
+    fun toUserSummary() =
+        UserSummary(id, username, displayName, friendship ?: FriendshipState.NONE, avatarOf(avatarUrl, avatarEmoji, avatarColor))
 }
 
 data class UserSearchPageDto(val page: Int, val results: List<UserSummaryDto>?, val hasMore: Boolean) {
     fun toSearchPage() = SearchPage(results.orEmpty().map { it.toUserSummary() }, hasMore)
 }
 
-data class ProfileStatsDto(val likes: Int, val ratings: Int, val comments: Int, val friends: Int)
+data class ProfileStatsDto(val likes: Int?, val ratings: Int, val comments: Int, val friends: Int)
 
 data class UserProfileDto(
     val id: String,
     val username: String,
     val displayName: String?,
     val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
     val memberSince: String,
     val isMe: Boolean,
     val friendship: FriendshipState?,
     val stats: ProfileStatsDto,
     val recentLikes: List<MovieDto>?,
+    val likesHidden: Boolean,
+    val canAddFriend: Boolean,
+    val canMessage: Boolean,
 ) {
     fun toUserProfile() =
         UserProfile(
@@ -46,5 +54,9 @@ data class UserProfileDto(
             friendship = friendship ?: FriendshipState.NONE,
             stats = ProfileStats(stats.likes, stats.ratings, stats.comments, stats.friends),
             recentLikes = recentLikes.orEmpty().map { it.toMovie() },
+            avatar = avatarOf(avatarUrl, avatarEmoji, avatarColor),
+            likesHidden = likesHidden,
+            canAddFriend = canAddFriend,
+            canMessage = canMessage,
         )
 }

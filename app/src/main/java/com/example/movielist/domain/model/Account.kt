@@ -6,8 +6,12 @@ data class Account(
     val username: String,
     val email: String,
     val displayName: String?,
-    val avatarUrl: String?,
-)
+    val avatar: Avatar = Avatar.NONE,
+    val privacy: Privacy = Privacy(),
+) {
+    val name: String
+        get() = displayName?.takeIf { it.isNotBlank() } ?: username
+}
 
 sealed interface SessionState {
     /** The saved token hasn't been read from disk yet. */
@@ -25,6 +29,9 @@ sealed interface AuthError {
     data object UsernameTaken : AuthError
 
     data object EmailTaken : AuthError
+
+    /** The current password, asked for before a sensitive change, was wrong. */
+    data object WrongPassword : AuthError
 
     data object Network : AuthError
 

@@ -2,11 +2,8 @@ package com.example.movielist.ui.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.movielist.domain.model.AuthError
-import com.example.movielist.domain.model.AuthException
 import com.example.movielist.domain.model.FriendshipState
 import com.example.movielist.domain.model.UserProfile
-import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.domain.repository.FriendRepository
 import com.example.movielist.domain.repository.UserRepository
 import com.example.movielist.ui.utils.toUserMessage
@@ -23,21 +20,17 @@ data class ProfileUiState(
     val profile: UserProfile? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    /** The edit-name dialog is open with this text. */
-    val nameDraft: String? = null,
-    val isSavingName: Boolean = false,
     /** A friend action (add, accept, …) is in flight. */
     val isFriendBusy: Boolean = false,
     /** Waiting for the user to confirm removing this friend. */
     val confirmUnfriend: Boolean = false,
-    /** Why saving the name failed; shown in the edit dialog, which stays open. */
+    /** Why a friend action failed. */
     val message: String? = null,
 )
 
 /** One person's profile. Lives as long as its screen (a navigation entry). */
 class ProfileViewModel(
     private val users: UserRepository,
-    private val auth: AuthRepository,
     private val friends: FriendRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -66,47 +59,6 @@ class ProfileViewModel(
 
     fun retry() {
         uiState.userId?.let { load(it, refresh = true) }
-    }
-
-    fun startEditName() {
-        val profile = uiState.profile?.takeIf { it.isMe } ?: return
-        _uiState.update { it.copy(nameDraft = profile.displayName.orEmpty()) }
-    }
-
-    fun onNameDraftChange(text: String) {
-        _uiState.update { it.copy(nameDraft = text.take(MAX_DISPLAY_NAME), message = null) }
-    }
-
-    fun cancelEditName() {
-        _uiState.update { it.copy(nameDraft = null, message = null) }
-    }
-
-    /** Saves the display name (blank removes it), then shows it on the profile. */
-    fun saveName() {
-        val draft = uiState.nameDraft ?: return
-        if (uiState.isSavingName) return
-        _uiState.update { it.copy(isSavingName = true) }
-        viewModelScope.launch {
-            auth.updateDisplayName(draft)
-                .onSuccess { account ->
-                    _uiState.update {
-                        it.copy(
-                            profile = it.profile?.copy(displayName = account.displayName),
-                            nameDraft = null,
-                            isSavingName = false,
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    val reason =
-                        when (val authError = (error as? AuthException)?.error) {
-                            is AuthError.Server -> authError.message
-                            AuthError.Network -> "Can't reach the server. Check your connection."
-                            else -> error.toUserMessage()
-                        }
-                    _uiState.update { it.copy(isSavingName = false, message = "Couldn't save your name. $reason") }
-                }
-        }
     }
 
     // ───────────── Friendship ─────────────
@@ -165,7 +117,4 @@ class ProfileViewModel(
         _uiState.update { it.copy(message = null) }
     }
 
-    private companion object {
-        const val MAX_DISPLAY_NAME = 50
-    }
 }

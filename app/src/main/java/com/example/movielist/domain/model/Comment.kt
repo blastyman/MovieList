@@ -16,6 +16,7 @@ data class Comment(
     val replyCount: Int = 0,
     /** The author's own 1–10 rating of this movie, if they rated it. */
     val authorScore: Int? = null,
+    val authorAvatar: Avatar = Avatar.NONE,
 ) {
     val isReply: Boolean
         get() = parentId != null

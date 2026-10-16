@@ -1,16 +1,23 @@
 package com.example.movielist.data.repository
 
+import com.example.movielist.data.model.AccountDto
 import com.example.movielist.data.model.AuthResponse
+import com.example.movielist.data.model.ChangeEmailRequest
+import com.example.movielist.data.model.ChangePasswordRequest
+import com.example.movielist.data.model.DeleteAccountRequest
 import com.example.movielist.data.model.ErrorResponse
 import com.example.movielist.data.model.LoginRequest
 import com.example.movielist.data.model.RegisterRequest
 import com.example.movielist.data.model.UpdateMeRequest
+import com.example.movielist.data.model.UpdatePrivacyRequest
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.domain.model.Account
 import com.example.movielist.domain.model.AuthError
 import com.example.movielist.domain.model.AuthException
+import com.example.movielist.domain.model.Privacy
 import com.example.movielist.domain.model.SessionState
+import com.example.movielist.domain.repository.AccountSettings
 import com.example.movielist.domain.repository.AuthRepository
 import com.google.gson.Gson
 import java.io.IOException
@@ -20,13 +27,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
+import retrofit2.Response
 
 class BackendAuthRepository(
     private val api: AuthApi,
     private val tokenStore: DataStoreTokenStore,
     private val scope: CoroutineScope,
-) : AuthRepository {
+) : AuthRepository, AccountSettings {
     private val _session = MutableStateFlow<SessionState>(SessionState.Loading)
     override val session: StateFlow<SessionState> = _session.asStateFlow()
 
@@ -49,9 +59,42 @@ class BackendAuthRepository(
     override suspend fun refreshAccount(): Result<Account> =
         call { api.me().toAccount() }.onSuccess { _account.value = it }
 
-    override suspend fun updateDisplayName(displayName: String): Result<Account> =
-        call { api.updateMe(UpdateMeRequest(displayName = displayName.trim())).toAccount() }
-            .onSuccess { _account.value = it }
+    override suspend fun updateProfile(
+        displayName: String?,
+        username: String?,
+        avatarEmoji: String?,
+        avatarColor: String?,
+    ): Result<Account> =
+        update { api.updateMe(UpdateMeRequest(displayName?.trim(), username?.trim(), avatarEmoji, avatarColor)) }
+
+    override suspend fun updatePrivacy(privacy: Privacy): Result<Account> =
+        update {
+            api.updatePrivacy(
+                UpdatePrivacyRequest(privacy.showInMatches, privacy.privateLikes, privacy.friendRequestsFrom, privacy.messagesFrom)
+            )
+        }
+
+    override suspend fun changeEmail(email: String, password: String): Result<Account> =
+        update { api.changeEmail(ChangeEmailRequest(email.trim(), password)) }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> =
+        call { api.changePassword(ChangePasswordRequest(currentPassword, newPassword)).orThrow() }
+
+    override suspend fun uploadAvatar(jpeg: ByteArray): Result<Account> =
+        update { api.uploadAvatar(jpeg.toRequestBody("image/jpeg".toMediaType())) }
+
+    override suspend fun removeAvatar(): Result<Account> = update { api.removeAvatar() }
+
+    override suspend fun deleteAccount(password: String): Result<Unit> =
+        call { api.deleteAccount(DeleteAccountRequest(password)).orThrow() }.onSuccess { logout() }
+
+    /** Runs a call that returns the account, and shows the new one everywhere. */
+    private suspend fun update(request: suspend () -> AccountDto): Result<Account> =
+        call { request().toAccount() }.onSuccess { _account.value = it }
+
+    private fun Response<Unit>.orThrow() {
+        if (!isSuccessful) throw HttpException(this)
+    }
 
     override suspend fun logout() {
         _account.value = null
@@ -94,6 +137,7 @@ class BackendAuthRepository(
                     "INVALID_CREDENTIALS" -> AuthError.InvalidCredentials
                     "USERNAME_TAKEN" -> AuthError.UsernameTaken
                     "EMAIL_TAKEN" -> AuthError.EmailTaken
+                    "WRONG_PASSWORD" -> AuthError.WrongPassword
                     else -> AuthError.Server(parsed?.message ?: "Server error (${code()})")
                 }
             }

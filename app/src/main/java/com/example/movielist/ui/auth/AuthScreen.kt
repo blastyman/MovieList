@@ -199,6 +199,7 @@ private fun errorMessage(error: AuthFormError): String =
                 AuthError.InvalidCredentials -> stringResource(R.string.auth_error_invalid_credentials)
                 AuthError.UsernameTaken -> stringResource(R.string.auth_error_username_taken)
                 AuthError.EmailTaken -> stringResource(R.string.auth_error_email_taken)
+                AuthError.WrongPassword -> stringResource(R.string.auth_error_wrong_password)
                 AuthError.Network -> stringResource(R.string.auth_error_network)
                 is AuthError.Server ->
                     remote.message.ifBlank { stringResource(R.string.auth_error_unknown) }

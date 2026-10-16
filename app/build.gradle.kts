@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     // Android's own emoji picker for the chat
     implementation(libs.androidx.emoji2.emojipicker)
+    // Reads which way up a picked photo is
+    implementation(libs.androidx.exifinterface)
 
     // Retrofit
     implementation(libs.retrofit)

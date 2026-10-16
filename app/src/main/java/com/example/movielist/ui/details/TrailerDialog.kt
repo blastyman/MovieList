@@ -42,6 +42,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.movielist.R
 import com.example.movielist.domain.model.Trailer
+import com.example.movielist.ui.settings.LocalAppSettings
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
@@ -55,6 +56,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTube
  */
 @Composable
 fun TrailerDialog(trailer: Trailer, onDismiss: () -> Unit) {
+    val autoplay = LocalAppSettings.current.autoplayTrailers
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var failed by remember(trailer) { mutableStateOf(false) }
@@ -106,7 +108,9 @@ fun TrailerDialog(trailer: Trailer, onDismiss: () -> Unit) {
                                     initialize(
                                         object : AbstractYouTubePlayerListener() {
                                             override fun onReady(youTubePlayer: YouTubePlayer) {
-                                                youTubePlayer.loadVideo(trailer.youtubeKey, 0f)
+                                                // "Play trailers right away" off: show it ready, wait for a tap.
+                                                if (autoplay) youTubePlayer.loadVideo(trailer.youtubeKey, 0f)
+                                                else youTubePlayer.cueVideo(trailer.youtubeKey, 0f)
                                             }
 
                                             override fun onError(

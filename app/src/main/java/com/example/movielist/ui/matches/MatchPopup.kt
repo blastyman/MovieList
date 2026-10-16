@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.movielist.R
+import com.example.movielist.domain.model.Avatar
 import com.example.movielist.domain.model.GroupBrief
 import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.UserSummary
@@ -72,6 +73,7 @@ import kotlinx.coroutines.launch
 fun MatchPopup(
     match: Match,
     myName: String?,
+    myAvatar: Avatar,
     onOpenProfile: (UserSummary) -> Unit,
     onOpenGroup: (GroupBrief) -> Unit,
     onSeeMatches: () -> Unit,
@@ -169,11 +171,13 @@ fun MatchPopup(
                 val slide = screenWidth.value * sides.value
                 MatchAvatar(
                     name = myName ?: "?",
+                    avatar = myAvatar,
                     modifier = Modifier.align(Alignment.BottomStart).offset(x = (-slide).dp),
                 )
                 val openLabel = stringResource(R.string.match_open_profile, person.user.name)
                 MatchAvatar(
                     name = person.user.name,
+                    avatar = person.user.avatar,
                     modifier =
                         Modifier.align(Alignment.BottomEnd)
                             .offset(x = slide.dp)
@@ -254,9 +258,9 @@ fun MatchPopup(
 }
 
 @Composable
-private fun MatchAvatar(name: String, modifier: Modifier = Modifier) {
+private fun MatchAvatar(name: String, avatar: Avatar, modifier: Modifier = Modifier) {
     Box(modifier = modifier.size(84.dp).background(Color.White, CircleShape), contentAlignment = Alignment.Center) {
-        UserAvatar(name, size = 76.dp)
+        UserAvatar(name, size = 76.dp, avatar = avatar)
     }
 }
 

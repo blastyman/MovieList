@@ -8,7 +8,14 @@ import java.time.Instant
 
 data class CommentRequest(val body: String)
 
-data class CommentAuthorDto(val id: String, val username: String, val displayName: String?)
+data class CommentAuthorDto(
+    val id: String,
+    val username: String,
+    val displayName: String?,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
+)
 
 data class CommentDto(
     val id: String,
@@ -33,6 +40,7 @@ data class CommentDto(
             parentId = parentId,
             replyCount = replyCount,
             authorScore = authorRating,
+            authorAvatar = avatarOf(author.avatarUrl, author.avatarEmoji, author.avatarColor),
         )
 }
 

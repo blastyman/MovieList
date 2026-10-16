@@ -168,7 +168,7 @@ private fun PersonRow(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        UserAvatar(user.name)
+        UserAvatar(user.name, avatar = user.avatar)
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(user.name, color = Color.White, style = MaterialTheme.typography.titleMedium)

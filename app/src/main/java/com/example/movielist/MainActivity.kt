@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.movielist.domain.model.SessionState
 import com.example.movielist.ui.auth.AuthScreen
 import com.example.movielist.ui.home.HomeScreen
+import com.example.movielist.ui.settings.LocalAppSettings
 import com.example.movielist.ui.theme.MovieListTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -37,6 +39,9 @@ class MainActivity : ComponentActivity() {
         val authRepository = appContainer.authRepository
 
         setContent {
+            // App settings reach the few places deep in the UI that follow them.
+            val appSettings = appContainer.appSettings.settings.collectAsStateWithLifecycle().value
+            CompositionLocalProvider(LocalAppSettings provides appSettings) {
             MovieListTheme {
                 val session = authRepository.session.collectAsStateWithLifecycle().value
                 val account = authRepository.account.collectAsStateWithLifecycle().value
@@ -95,13 +100,14 @@ class MainActivity : ComponentActivity() {
                             matchesFactory = appContainer.matchesViewModelFactory(),
                             groupsFactory = appContainer.groupsViewModelFactory(),
                             chatFactory = appContainer.chatViewModelFactory(),
+                            settingsFactory = appContainer.settingsViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
-                            accountId = account?.id,
-                            accountName = account?.let { it.displayName?.takeIf(String::isNotBlank) ?: it.username },
+                            account = account,
                             onLogout = { scope.launch { authRepository.logout() } },
                         )
                     }
                 }
+            }
             }
         }
     }

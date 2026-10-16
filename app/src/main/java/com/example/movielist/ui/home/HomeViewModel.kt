@@ -2,6 +2,7 @@ package com.example.movielist.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.model.RatingStats
@@ -16,6 +17,7 @@ import com.example.movielist.domain.service.MovieCatalog
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
 import com.example.movielist.ui.utils.toUserMessage
+import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -114,6 +116,10 @@ class HomeViewModel(
         _uiState.update { it.copy(selectedMovie = null, selectedRating = null, selectedTrailer = null) }
     }
 
+    fun dismissMatch() {
+        _uiState.update { it.copy(matchPopup = null) }
+    }
+
     fun messageShown() {
         _uiState.update { it.copy(message = null) }
     }
@@ -208,7 +214,14 @@ class HomeViewModel(
         _uiState.update { it.withReaction(movie, reaction) }
         viewModelScope.launch {
             try {
-                saveMutex.withLock { reactions.setReaction(movie.id, reaction) }
+                val matched = saveMutex.withLock { reactions.setReaction(movie.id, reaction) }
+                if (reaction == Reaction.LIKE && matched.people.isNotEmpty()) {
+                    // "It's a match!" — unless the like was already taken back.
+                    _uiState.update {
+                        if (it.reactionTo(movie.id) != Reaction.LIKE) it
+                        else it.copy(matchPopup = Match(movie, matched.people, matched.count, Instant.now()))
+                    }
+                }
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {

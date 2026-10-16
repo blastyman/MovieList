@@ -12,9 +12,10 @@ enum class MovieCategory(val displayName: String, val genreId: Int? = null) {
 
     // Where a movie was opened from; not shelves on the home screen.
     SEARCH("search"),
-    PROFILE("profile");
+    PROFILE("profile"),
+    MATCH("match");
 
     /** A shelf on the home screen, filled by [com.example.movielist.domain.service.MovieCatalog.categorize]. */
     val isHomeShelf: Boolean
-        get() = this != LIKED && this != DISLIKED && this != SEARCH && this != PROFILE
+        get() = this != LIKED && this != DISLIKED && this != SEARCH && this != PROFILE && this != MATCH
 }

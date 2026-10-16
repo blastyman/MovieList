@@ -7,6 +7,14 @@ import com.example.movielist.domain.model.Reaction
 
 data class SetReactionRequest(val reaction: Reaction)
 
+/** Reply to a like or dislike; for a like, [matchedPeople] are the closest of the [matchedCount] others who like it. */
+data class ReactionDto(
+    val movieId: Int,
+    val reaction: Reaction,
+    val matchedPeople: List<MatchPersonDto>?,
+    val matchedCount: Int,
+)
+
 data class ReactionIdsDto(val liked: List<Int>?, val disliked: List<Int>?)
 
 data class ReactedMovieDto(val movie: MovieDto, val reaction: Reaction, val reactedAt: String)

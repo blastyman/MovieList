@@ -1,5 +1,6 @@
 package com.example.movielist.data.remote
 
+import com.example.movielist.data.model.ReactionDto
 import com.example.movielist.data.model.ReactionIdsDto
 import com.example.movielist.data.model.ReactionPageDto
 import com.example.movielist.data.model.SetReactionRequest
@@ -22,7 +23,7 @@ interface ReactionApi {
     ): ReactionPageDto
 
     @PUT("movies/{id}/reaction")
-    suspend fun setReaction(@Path("id") movieId: Int, @Body request: SetReactionRequest)
+    suspend fun setReaction(@Path("id") movieId: Int, @Body request: SetReactionRequest): ReactionDto
 
     @DELETE("movies/{id}/reaction") suspend fun removeReaction(@Path("id") movieId: Int)
 }

@@ -2,6 +2,7 @@ package com.example.movielist.data.repository
 
 import com.example.movielist.data.model.SetReactionRequest
 import com.example.movielist.data.remote.ReactionApi
+import com.example.movielist.domain.model.MatchPeople
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.Reaction
 import com.example.movielist.domain.repository.ReactionRepository
@@ -26,9 +27,13 @@ class BackendReactionRepository(private val api: ReactionApi) : ReactionReposito
         return movies
     }
 
-    override suspend fun setReaction(movieId: Int, reaction: Reaction?) {
-        if (reaction == null) api.removeReaction(movieId)
-        else api.setReaction(movieId, SetReactionRequest(reaction))
+    override suspend fun setReaction(movieId: Int, reaction: Reaction?): MatchPeople {
+        if (reaction == null) {
+            api.removeReaction(movieId)
+            return MatchPeople.NONE
+        }
+        val saved = api.setReaction(movieId, SetReactionRequest(reaction))
+        return MatchPeople(saved.matchedPeople.orEmpty().map { it.toMatchPerson() }, saved.matchedCount)
     }
 
     private companion object {

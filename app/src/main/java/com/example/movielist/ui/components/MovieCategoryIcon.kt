@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RocketLaunch
@@ -27,4 +28,5 @@ val MovieCategory.icon: ImageVector
             MovieCategory.DISLIKED -> Icons.Default.ThumbDown
             MovieCategory.SEARCH -> Icons.Default.Search
             MovieCategory.PROFILE -> Icons.Default.Person
+            MovieCategory.MATCH -> Icons.Default.Group
         }

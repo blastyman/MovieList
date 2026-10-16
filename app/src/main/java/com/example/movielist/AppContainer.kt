@@ -8,6 +8,7 @@ import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
 import com.example.movielist.data.remote.CommentApi
 import com.example.movielist.data.remote.FriendApi
+import com.example.movielist.data.remote.MatchApi
 import com.example.movielist.data.remote.MovieApi
 import com.example.movielist.data.remote.MovieSearchApi
 import com.example.movielist.data.remote.RatingApi
@@ -17,6 +18,7 @@ import com.example.movielist.data.remote.UserApi
 import com.example.movielist.data.repository.BackendAuthRepository
 import com.example.movielist.data.repository.BackendCommentRepository
 import com.example.movielist.data.repository.BackendFriendRepository
+import com.example.movielist.data.repository.BackendMatchRepository
 import com.example.movielist.data.repository.BackendMovieRepository
 import com.example.movielist.data.repository.BackendMovieSearchRepository
 import com.example.movielist.data.repository.BackendRatingRepository
@@ -28,6 +30,7 @@ import com.example.movielist.ui.auth.AuthViewModel
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.friends.FriendsViewModel
 import com.example.movielist.ui.home.HomeViewModel
+import com.example.movielist.ui.matches.MatchesViewModel
 import com.example.movielist.ui.profile.ProfileViewModel
 import com.example.movielist.ui.search.SearchViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -67,6 +70,7 @@ class AppContainer(context: Context) {
     private val commentRepository by lazy { BackendCommentRepository(backend.create(CommentApi::class.java)) }
     private val userRepository by lazy { BackendUserRepository(backend.create(UserApi::class.java)) }
     private val friendRepository by lazy { BackendFriendRepository(backend.create(FriendApi::class.java)) }
+    private val matchRepository by lazy { BackendMatchRepository(backend.create(MatchApi::class.java)) }
     private val movieSearchRepository by lazy {
         BackendMovieSearchRepository(backend.create(MovieSearchApi::class.java))
     }
@@ -85,6 +89,9 @@ class AppContainer(context: Context) {
 
     fun friendsViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { FriendsViewModel(friendRepository) }
+
+    fun matchesViewModelFactory(): ViewModelProvider.Factory =
+        viewModelFactory { MatchesViewModel(matchRepository) }
 
     fun authViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { AuthViewModel(authRepository) }

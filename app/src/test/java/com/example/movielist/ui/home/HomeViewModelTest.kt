@@ -1,10 +1,14 @@
 package com.example.movielist.ui.home
 
+import com.example.movielist.domain.model.FriendshipState
+import com.example.movielist.domain.model.MatchPeople
+import com.example.movielist.domain.model.MatchPerson
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.model.RatingStats
 import com.example.movielist.domain.model.Reaction
 import com.example.movielist.domain.model.Trailer
+import com.example.movielist.domain.model.UserSummary
 import com.example.movielist.domain.repository.InMemoryRatingRepository
 import com.example.movielist.domain.repository.InMemoryReactionRepository
 import com.example.movielist.domain.repository.MovieRepository
@@ -308,6 +312,50 @@ class HomeViewModelTest {
             assertTrue(viewModel.uiState.likedMovies.isEmpty())
         }
 
+    @Test
+    fun likingAMovieSomeoneElseLikesShowsTheMatchPopup() =
+        runTest(dispatcher) {
+            val anna = MatchPerson(UserSummary("a", "anna", "Anna", FriendshipState.NONE), sharedLikes = 3)
+            val matchedId = movies[0].id
+            val reactions = InMemoryReactionRepository().apply { likedBy[matchedId] = MatchPeople(listOf(anna), count = 2) }
+            val viewModel = HomeViewModel(MovieRepository { movies }, reactions)
+            advanceUntilIdle()
+
+            viewModel.selectMovie(MovieCategory.POPULAR, movies[0])
+            viewModel.rateSelectedMovie(liked = true)
+            assertNull(viewModel.uiState.matchPopup) // only once the server confirms
+            advanceUntilIdle()
+
+            val match = viewModel.uiState.matchPopup
+            assertEquals(movies[0], match?.movie)
+            assertEquals(listOf(anna), match?.people)
+            assertEquals(2, match?.peopleCount)
+
+            viewModel.dismissMatch()
+            assertNull(viewModel.uiState.matchPopup)
+        }
+
+    @Test
+    fun noPopupWithoutAMatchOrWhenTheLikeWasTakenBack() =
+        runTest(dispatcher) {
+            val anna = MatchPerson(UserSummary("a", "anna", "Anna", FriendshipState.NONE), sharedLikes = 3)
+            val matchedId = movies[1].id
+            val reactions = InMemoryReactionRepository().apply { likedBy[matchedId] = MatchPeople(listOf(anna), count = 2) }
+            val viewModel = HomeViewModel(MovieRepository { movies }, reactions)
+            advanceUntilIdle()
+
+            viewModel.rateCategoryMovie(MovieCategory.POPULAR, liked = true) // movies[0]: nobody else likes it
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.matchPopup)
+
+            // Like then quickly dislike movies[1]: the like's match must not pop up.
+            viewModel.selectMovie(MovieCategory.LIKED, movies[1])
+            viewModel.rateSelectedMovie(liked = true)
+            viewModel.rateSelectedMovie(liked = false)
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.matchPopup)
+        }
+
     /** Loads fine; saving [failFor] reactions throws like a dropped connection. */
     private class FailingReactions(
         private val failFor: Set<Reaction?> = setOf(Reaction.LIKE, Reaction.DISLIKE, null)
@@ -318,9 +366,9 @@ class HomeViewModelTest {
 
         override suspend fun loadMovies(reaction: Reaction) = delegate.loadMovies(reaction)
 
-        override suspend fun setReaction(movieId: Int, reaction: Reaction?) {
+        override suspend fun setReaction(movieId: Int, reaction: Reaction?): MatchPeople {
             if (reaction in failFor) throw IOException("Offline")
-            delegate.setReaction(movieId, reaction)
+            return delegate.setReaction(movieId, reaction)
         }
     }
 }

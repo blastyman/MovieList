@@ -39,7 +39,9 @@ import com.example.movielist.ui.comments.CommentsSection
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.details.MovieDetailsScreen
 import com.example.movielist.ui.lists.MovieListsScreen
+import com.example.movielist.ui.matches.MatchPopup
 import com.example.movielist.ui.matches.MatchesScreen
+import com.example.movielist.ui.matches.MatchesViewModel
 import com.example.movielist.ui.navigation.AppDrawer
 import com.example.movielist.ui.navigation.AppSection
 import com.example.movielist.domain.model.MovieCategory
@@ -59,9 +61,12 @@ fun HomeScreen(
     searchFactory: ViewModelProvider.Factory,
     profileFactory: ViewModelProvider.Factory,
     friendsFactory: ViewModelProvider.Factory,
+    matchesFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     /** The signed-in account; null until it has loaded. */
     accountId: String?,
+    /** Your name as others see it, for the match popup. */
+    accountName: String?,
     onLogout: () -> Unit,
 ) {
     val viewModel: HomeViewModel = viewModel(key = viewModelKey, factory = factory)
@@ -124,6 +129,7 @@ fun HomeScreen(
                             searchFactory = searchFactory,
                             profileFactory = profileFactory,
                             friendsFactory = friendsFactory,
+                            matchesFactory = matchesFactory,
                             onLogout = onLogout,
                             openMenu = openMenu,
                         )
@@ -162,6 +168,25 @@ fun HomeScreen(
                     }
                 }
 
+                // Above everything, details included.
+                state.matchPopup?.let { match ->
+                    MatchPopup(
+                        match = match,
+                        myName = accountName,
+                        onOpenProfile = { user ->
+                            viewModel.dismissMatch()
+                            viewModel.closeDetails()
+                            navController.navigate(profileRoute(user.id))
+                        },
+                        onSeeMatches = {
+                            viewModel.dismissMatch()
+                            viewModel.closeDetails()
+                            navController.navigateToSection(AppSection.MATCHES)
+                        },
+                        onKeepSwiping = viewModel::dismissMatch,
+                    )
+                }
+
                 SnackbarHost(snackbarHost, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
 
                 if (drawerState.isOpen) BackHandler { scope.launch { drawerState.close() } }
@@ -179,6 +204,7 @@ private fun SectionNavHost(
     searchFactory: ViewModelProvider.Factory,
     profileFactory: ViewModelProvider.Factory,
     friendsFactory: ViewModelProvider.Factory,
+    matchesFactory: ViewModelProvider.Factory,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
 ) {
@@ -207,7 +233,17 @@ private fun SectionNavHost(
                 onMovieClick = { movie, filter -> viewModel.selectMovie(filter.category, movie) },
             )
         }
-        composable(AppSection.MATCHES.route) { MatchesScreen(openMenu) }
+        composable(AppSection.MATCHES.route) {
+            val matches: MatchesViewModel = viewModel(factory = matchesFactory)
+            LaunchedEffect(Unit) { matches.load() }
+            MatchesScreen(
+                state = matches.uiStateFlow.collectAsStateWithLifecycle().value,
+                onRetry = matches::load,
+                onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.MATCH, movie) },
+                onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
+                onMenuClick = openMenu,
+            )
+        }
         composable(AppSection.SEARCH.route) {
             val search: SearchViewModel = viewModel(factory = searchFactory)
             SearchScreen(
@@ -282,7 +318,7 @@ private fun LoadingMessage(message: String, onRetry: () -> Unit) {
     }
 }
 
-/** Someone's profile, opened from search: `profile/<userId>`. Each opened profile has its own ViewModel. */
+/** Someone's profile, opened from search or a match: `profile/<userId>`. Each opened profile has its own ViewModel. */
 private const val PROFILE_USER_ID = "userId"
 private const val PROFILE_ROUTE = "profile/{$PROFILE_USER_ID}"
 

@@ -1,5 +1,6 @@
 package com.example.movielist.ui.home
 
+import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.model.RatingStats
@@ -25,6 +26,8 @@ data class HomeUiState(
     /** Best trailer of [selectedMovie]; null while loading or if it has none. */
     val selectedTrailer: Trailer? = null,
     val listFilter: MovieListFilter = MovieListFilter.LIKED,
+    /** Shown as the "It's a match!" popup until dismissed. */
+    val matchPopup: Match? = null,
     /** A save that failed and was undone. Shown once, then cleared with [HomeViewModel.messageShown]. */
     val message: String? = null,
 ) {

@@ -4,9 +4,35 @@
     <string name="error_loading_movies">Error: %1$s</string>
     <string name="no_movies_available">No movies available.</string>
     <string name="no_movies_here">No movies here yet.</string>
-    <string name="no_matches">Matches arrive with friend groups: movies everyone in the group liked.</string>
+    <string name="no_matches">No matches yet. Like movies, and the people who like them too show up here.</string>
     <string name="no_description">No description available.</string>
     <string name="recommended_for_you">recommended for you</string>
+
+    <!-- Matches -->
+    <string name="match_title_small">It\'s a</string>
+    <string name="match_title">Match!</string>
+    <string name="match_with_one">You and %1$s both like %2$s.</string>
+    <plurals name="match_with_many">
+        <item quantity="one">You, %1$s and %2$d other person like %3$s.</item>
+        <item quantity="other">You, %1$s and %2$d other people like %3$s.</item>
+    </plurals>
+    <plurals name="match_in_common">
+        <item quantity="one">%1$d movie in common</item>
+        <item quantity="other">%1$d movies in common</item>
+    </plurals>
+    <string name="match_view_profile">View %1$s\'s profile</string>
+    <string name="match_open_profile">Open %1$s\'s profile</string>
+    <plurals name="match_more_people">
+        <item quantity="one">+%1$d more</item>
+        <item quantity="other">+%1$d more</item>
+    </plurals>
+    <string name="match_see">See matches</string>
+    <string name="match_keep">Keep swiping</string>
+    <string name="match_likes_too">%1$s likes it too</string>
+    <plurals name="match_like_too_many">
+        <item quantity="one">%1$s and %2$d other like it too</item>
+        <item quantity="other">%1$s and %2$d others like it too</item>
+    </plurals>
 
     <!-- Ratings -->
     <plurals name="rating_average">

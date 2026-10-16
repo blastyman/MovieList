@@ -64,8 +64,10 @@ class MainActivity : ComponentActivity() {
                             searchFactory = appContainer.searchViewModelFactory(),
                             profileFactory = appContainer.profileViewModelFactory(),
                             friendsFactory = appContainer.friendsViewModelFactory(),
+                            matchesFactory = appContainer.matchesViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
                             accountId = account?.id,
+                            accountName = account?.let { it.displayName?.takeIf(String::isNotBlank) ?: it.username },
                             onLogout = { scope.launch { authRepository.logout() } },
                         )
                     }

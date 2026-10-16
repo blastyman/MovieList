@@ -9,7 +9,9 @@ import com.example.movielist.backend.features.movies.MovieSummaryDto
 import com.example.movielist.backend.features.movies.toSummary
 import com.example.movielist.backend.features.users.FriendshipState
 import com.example.movielist.backend.features.users.UserSummaryDto
+import com.example.movielist.backend.features.users.friendIds
 import com.example.movielist.backend.features.users.friendshipStates
+import com.example.movielist.backend.features.users.toUserSummary
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.JoinType
@@ -90,15 +92,22 @@ class MatchService(private val db: Database) {
         MatchPeopleDto(ranked.take(MAX_PEOPLE), ranked.size)
     }
 
-    /** For each of [movieIds], the other users who liked it. */
-    private fun JdbcTransaction.likersByMovie(me: UUID, movieIds: List<Int>): Map<Int, List<UUID>> =
-        MovieReactions.select(MovieReactions.movieId, MovieReactions.userId)
+    /**
+     * For each of [movieIds], the other users who liked it. People who turned "show me in
+     * matches" off are left out, except for their friends.
+     */
+    private fun JdbcTransaction.likersByMovie(me: UUID, movieIds: List<Int>): Map<Int, List<UUID>> {
+        val friends = friendIds(me)
+        return MovieReactions.join(Users, JoinType.INNER, MovieReactions.userId, Users.id)
+            .select(MovieReactions.movieId, MovieReactions.userId, Users.showInMatches)
             .where {
                 (MovieReactions.movieId inList movieIds) and
                     (MovieReactions.userId neq me) and
                     (MovieReactions.reaction eq Reaction.LIKE.name)
             }
+            .filter { it[Users.showInMatches] || it[MovieReactions.userId] in friends }
             .groupBy({ it[MovieReactions.movieId] }, { it[MovieReactions.userId] })
+    }
 
     /** [userIds] as people: their profile, your friendship with them, and the likes you share. */
     private fun JdbcTransaction.people(me: UUID, userIds: List<UUID>): Map<UUID, MatchPersonDto> {
@@ -108,13 +117,7 @@ class MatchService(private val db: Database) {
         return Users.selectAll().where { Users.id inList userIds }.associate {
             val id = it[Users.id]
             id to MatchPersonDto(
-                user = UserSummaryDto(
-                    id = id.toString(),
-                    username = it[Users.username],
-                    displayName = it[Users.displayName],
-                    avatarUrl = it[Users.avatarUrl],
-                    friendship = states[id] ?: FriendshipState.NONE,
-                ),
+                user = it.toUserSummary(states[id] ?: FriendshipState.NONE),
                 sharedLikes = shared[id] ?: 0,
             )
         }

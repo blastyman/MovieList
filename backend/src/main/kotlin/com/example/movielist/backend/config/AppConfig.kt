@@ -10,6 +10,8 @@ data class AppConfig(
     val database: DatabaseConfig,
     val jwtSecret: String,
     val tmdbToken: String,
+    /** Where profile pictures are stored. */
+    val uploadDir: String = "uploads",
 ) {
     companion object {
         private const val DEV_JWT_SECRET = "dev-only-jwt-secret-change-me"
@@ -31,6 +33,7 @@ data class AppConfig(
                 ),
                 jwtSecret = required("JWT_SECRET", DEV_JWT_SECRET),
                 tmdbToken = required("TMDB_TOKEN", ""),
+                uploadDir = env["UPLOAD_DIR"]?.takeIf { it.isNotBlank() } ?: "uploads",
             )
         }
     }

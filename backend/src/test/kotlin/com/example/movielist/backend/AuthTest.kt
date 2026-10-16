@@ -151,26 +151,29 @@ class AuthTest {
         val updated = client.patch("/me") {
             bearerAuth(token)
             contentType(ContentType.Application.Json)
-            setBody(UpdateMeRequest(displayName = "  Stelios  ", avatarUrl = "https://example.com/a.png"))
+            setBody(UpdateMeRequest(displayName = "  Stelios  ", avatarEmoji = "🍿", avatarColor = "#e50914"))
         }.body<CurrentUserDto>()
         assertEquals("Stelios", updated.displayName)
-        assertEquals("https://example.com/a.png", updated.avatarUrl)
+        assertEquals("🍿", updated.avatarEmoji)
+        assertEquals("#E50914", updated.avatarColor)
 
-        // Only displayName is sent: it gets cleared, avatar stays.
+        // Only displayName is sent: it gets cleared, the avatar stays.
         val cleared = client.patch("/me") {
             bearerAuth(token)
             contentType(ContentType.Application.Json)
             setBody(UpdateMeRequest(displayName = ""))
         }.body<CurrentUserDto>()
         assertNull(cleared.displayName)
-        assertEquals("https://example.com/a.png", cleared.avatarUrl)
+        assertEquals("🍿", cleared.avatarEmoji)
 
-        val badUrl = client.patch("/me") {
-            bearerAuth(token)
-            contentType(ContentType.Application.Json)
-            setBody(UpdateMeRequest(avatarUrl = "javascript:alert(1)"))
+        for (bad in listOf(UpdateMeRequest(avatarEmoji = "abc"), UpdateMeRequest(avatarColor = "red"))) {
+            val response = client.patch("/me") {
+                bearerAuth(token)
+                contentType(ContentType.Application.Json)
+                setBody(bad)
+            }
+            assertEquals(HttpStatusCode.BadRequest, response.status, bad.toString())
         }
-        assertEquals(HttpStatusCode.BadRequest, badUrl.status)
     }
 
     @Test

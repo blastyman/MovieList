@@ -25,6 +25,7 @@ import com.example.movielist.backend.features.ratings.RatingService
 import com.example.movielist.backend.features.ratings.ratingRoutes
 import com.example.movielist.backend.features.reactions.ReactionService
 import com.example.movielist.backend.features.reactions.reactionRoutes
+import com.example.movielist.backend.features.users.AvatarStore
 import com.example.movielist.backend.features.users.UserRepository
 import com.example.movielist.backend.features.users.UserService
 import com.example.movielist.backend.features.users.userRoutes
@@ -42,6 +43,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.routing
 import org.jetbrains.exposed.v1.jdbc.Database
+import java.io.File
 import javax.sql.DataSource
 
 fun main() {
@@ -67,7 +69,6 @@ fun Application.module(
     val database = Database.connect(dataSource)
 
     val jwtService = JwtService(config.jwtSecret)
-    val authService = AuthService(UserRepository(database), PasswordHasher(), jwtService)
 
     if (config.tmdbToken.isBlank()) log.warn("TMDB_TOKEN is not set: /movies endpoints will fail")
     val tmdbClient = TmdbClient(tmdbEngine, config.tmdbToken)
@@ -75,6 +76,8 @@ fun Application.module(
     val movieService = MovieService(tmdbClient, database)
     val matchService = MatchService(database)
     val groupService = GroupService(database)
+    val avatarStore = AvatarStore(File(config.uploadDir))
+    val authService = AuthService(UserRepository(database), PasswordHasher(), jwtService, groupService, avatarStore)
     val reactionService = ReactionService(database, movieService, matchService, groupService)
     val ratingService = RatingService(database, movieService)
     val commentService = CommentService(database, movieService)
@@ -91,7 +94,7 @@ fun Application.module(
 
     routing {
         healthRoutes(database)
-        authRoutes(authService)
+        authRoutes(authService, avatarStore)
         movieRoutes(movieService, ratingService, reactionService, commentService)
         reactionRoutes(reactionService)
         ratingRoutes(ratingService)

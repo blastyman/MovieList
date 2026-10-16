@@ -50,7 +50,7 @@ class UserService(private val db: Database) {
         return db.query {
             val rows = exec(
                 """
-                SELECT id, username, display_name, avatar_url
+                SELECT id, username, display_name, avatar_url, avatar_emoji, avatar_color
                 FROM users
                 WHERE id <> ?
                   AND (lower(username) LIKE ? ESCAPE '\' OR lower(display_name) LIKE ? ESCAPE '\')
@@ -78,6 +78,8 @@ class UserService(private val db: Database) {
                                 username = rs.getString("username"),
                                 displayName = rs.getString("display_name"),
                                 avatarUrl = rs.getString("avatar_url"),
+                                avatarEmoji = rs.getString("avatar_emoji"),
+                                avatarColor = rs.getString("avatar_color"),
                             )
                         )
                     }
@@ -94,6 +96,8 @@ class UserService(private val db: Database) {
                         username = it.username,
                         displayName = it.displayName,
                         avatarUrl = it.avatarUrl,
+                        avatarEmoji = it.avatarEmoji,
+                        avatarColor = it.avatarColor,
                         friendship = states[it.id] ?: FriendshipState.NONE,
                     )
                 },
@@ -116,6 +120,13 @@ class UserService(private val db: Database) {
                 (Friendships.status eq FriendshipStatus.ACCEPTED.name)
         }
 
+        val isMe = userId == viewerId
+        val friendship = if (isMe) FriendshipState.NONE
+            else friendshipStates(viewerId, listOf(userId))[userId] ?: FriendshipState.NONE
+        val areFriends = friendship == FriendshipState.FRIENDS
+        // Private likes: only friends (and you) see them.
+        val likesHidden = user[Users.privateLikes] && !isMe && !areFriends
+
         val recentLikes = MovieReactions
             .join(MoviesCache, JoinType.INNER, MovieReactions.movieId, MoviesCache.movieId)
             .select(MoviesCache.json)
@@ -124,21 +135,37 @@ class UserService(private val db: Database) {
             .limit(RECENT_LIKES)
             .map { it[MoviesCache.json].toSummary() }
 
+        val requestsFrom = FriendRequestsFrom.valueOf(user[Users.friendRequestsFrom])
+        val viewerMessagesOff =
+            Users.select(Users.messagesFrom).where { Users.id eq viewerId }.single()[Users.messagesFrom] == MessagesFrom.NOBODY.name
         UserProfileDto(
             id = userId.toString(),
             username = user[Users.username],
             displayName = user[Users.displayName],
             avatarUrl = user[Users.avatarUrl],
+            avatarEmoji = user[Users.avatarEmoji],
+            avatarColor = user[Users.avatarColor],
             memberSince = user[Users.createdAt].toInstant().toString(),
-            isMe = userId == viewerId,
-            friendship = if (userId == viewerId) FriendshipState.NONE
-                else friendshipStates(viewerId, listOf(userId))[userId] ?: FriendshipState.NONE,
-            stats = ProfileStatsDto(likes = likes, ratings = ratings, comments = comments, friends = friends),
-            recentLikes = recentLikes,
+            isMe = isMe,
+            friendship = friendship,
+            stats = ProfileStatsDto(likes = if (likesHidden) null else likes, ratings = ratings, comments = comments, friends = friends),
+            recentLikes = if (likesHidden) emptyList() else recentLikes,
+            likesHidden = likesHidden,
+            // Answering their request is always possible; a new one depends on their setting.
+            canAddFriend = !isMe && (friendship == FriendshipState.REQUEST_RECEIVED ||
+                (friendship == FriendshipState.NONE && mayRequest(viewerId, userId, requestsFrom))),
+            canMessage = areFriends && !viewerMessagesOff && user[Users.messagesFrom] != MessagesFrom.NOBODY.name,
         )
     }
 
-    private data class FoundUser(val id: UUID, val username: String, val displayName: String?, val avatarUrl: String?)
+    private data class FoundUser(
+        val id: UUID,
+        val username: String,
+        val displayName: String?,
+        val avatarUrl: String?,
+        val avatarEmoji: String?,
+        val avatarColor: String?,
+    )
 
     /** SELECT count(*) FROM [table] WHERE [condition]. */
     private fun JdbcTransaction.countWhere(table: Table, condition: () -> Op<Boolean>): Int {

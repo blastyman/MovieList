@@ -10,6 +10,9 @@ data class CommentAuthorDto(
     val id: String,
     val username: String,
     val displayName: String?,
+    val avatarUrl: String? = null,
+    val avatarEmoji: String? = null,
+    val avatarColor: String? = null,
 )
 
 @Serializable

@@ -22,6 +22,12 @@ object Users : Table("users") {
     val passwordHash = text("password_hash")
     val displayName = varchar("display_name", 50).nullable()
     val avatarUrl = text("avatar_url").nullable()
+    val avatarEmoji = text("avatar_emoji").nullable()
+    val avatarColor = varchar("avatar_color", 7).nullable()
+    val showInMatches = bool("show_in_matches").default(true)
+    val privateLikes = bool("private_likes").default(false)
+    val friendRequestsFrom = varchar("friend_requests_from", 10).default("EVERYONE") // FriendRequestsFrom
+    val messagesFrom = varchar("messages_from", 10).default("FRIENDS") // MessagesFrom
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 
     override val primaryKey = PrimaryKey(id)

@@ -27,6 +27,7 @@ object TestDatabase {
         database = DatabaseConfig(url = "embedded", user = "postgres", password = ""),
         jwtSecret = "test-secret",
         tmdbToken = "",
+        uploadDir = kotlin.io.path.createTempDirectory("movielist-avatars").toString(),
     )
 
     /** Runs a `SELECT count(*) …` straight on the database, for checking rows the API doesn't show. */

@@ -5,8 +5,11 @@ import com.example.movielist.backend.db.Friendships
 import com.example.movielist.backend.db.Users
 import com.example.movielist.backend.db.query
 import com.example.movielist.backend.db.violatedUniqueConstraint
+import com.example.movielist.backend.features.users.FriendRequestsFrom
 import com.example.movielist.backend.features.users.FriendshipState
 import com.example.movielist.backend.features.users.UserSummaryDto
+import com.example.movielist.backend.features.users.mayRequest
+import com.example.movielist.backend.features.users.toUserSummary
 import com.example.movielist.backend.plugins.ApiException
 import com.example.movielist.backend.plugins.NotFoundException
 import com.example.movielist.backend.plugins.ValidationException
@@ -22,6 +25,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Clock
@@ -30,6 +34,9 @@ import java.util.UUID
 
 class NoFriendRequestException :
     ApiException(HttpStatusCode.NotFound, "NO_FRIEND_REQUEST", "There is no such friend request")
+
+class RequestsClosedException :
+    ApiException(HttpStatusCode.Forbidden, "REQUESTS_CLOSED", "They aren't taking friend requests from you")
 
 class NotFriendsException : ApiException(HttpStatusCode.NotFound, "NOT_FRIENDS", "You are not friends")
 
@@ -107,10 +114,15 @@ class FriendService(private val db: Database, private val clock: Clock = Clock.s
     private data class PairRow(val requester: UUID, val addressee: UUID, val isPending: Boolean)
 
     private fun JdbcTransaction.requestOrAccept(me: UUID, otherId: UUID): FriendshipDto {
-        if (Users.selectAll().where { Users.id eq otherId }.empty()) throw NotFoundException("No user with id $otherId")
+        val other = Users.select(Users.friendRequestsFrom).where { Users.id eq otherId }.singleOrNull()
+            ?: throw NotFoundException("No user with id $otherId")
         val row = pairRow(me, otherId)
         val state = when {
             row == null -> {
+                // A new request has to pass their "who can add me" setting.
+                if (!mayRequest(me, otherId, FriendRequestsFrom.valueOf(other[Users.friendRequestsFrom]))) {
+                    throw RequestsClosedException()
+                }
                 Friendships.insert {
                     it[requesterId] = me
                     it[addresseeId] = otherId
@@ -170,11 +182,5 @@ class FriendService(private val db: Database, private val clock: Clock = Clock.s
         return rows.zip(otherIds).mapNotNull { (row, otherId) -> users[otherId]?.let { row to it } }
     }
 
-    private fun ResultRow.toSummary(state: FriendshipState) = UserSummaryDto(
-        id = this[Users.id].toString(),
-        username = this[Users.username],
-        displayName = this[Users.displayName],
-        avatarUrl = this[Users.avatarUrl],
-        friendship = state,
-    )
+    private fun ResultRow.toSummary(state: FriendshipState) = toUserSummary(state)
 }

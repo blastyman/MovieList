@@ -13,6 +13,7 @@ import com.example.movielist.backend.features.movies.toSummary
 import com.example.movielist.backend.features.users.FriendshipState
 import com.example.movielist.backend.features.users.UserSummaryDto
 import com.example.movielist.backend.features.users.friendshipStates
+import com.example.movielist.backend.features.users.toUserSummary
 import com.example.movielist.backend.plugins.ApiException
 import com.example.movielist.backend.plugins.ForbiddenException
 import com.example.movielist.backend.plugins.NotFoundException
@@ -147,6 +148,14 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
         if (userId == me) null else group(me, groupId)
     }
 
+    /** Leaves every group, handing over the ones [me] owns; used when an account is deleted. */
+    suspend fun leaveAll(me: UUID) {
+        val ids = db.query {
+            GroupMembers.select(GroupMembers.groupId).where { GroupMembers.userId eq me }.map { it[GroupMembers.groupId] }
+        }
+        ids.forEach { removeMember(me, it, me) }
+    }
+
     /** The owner deletes the group for everyone, its chat included. */
     suspend fun disband(me: UUID, groupId: UUID) {
         db.query {
@@ -224,15 +233,7 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
         val states = friendshipStates(me, rows.map { it[Users.id] })
         val members = rows
             .sortedByDescending { it[Users.id] == ownerId } // stable, so the rest stay in join order
-            .map {
-                UserSummaryDto(
-                    id = it[Users.id].toString(),
-                    username = it[Users.username],
-                    displayName = it[Users.displayName],
-                    avatarUrl = it[Users.avatarUrl],
-                    friendship = states[it[Users.id]] ?: FriendshipState.NONE,
-                )
-            }
+            .map { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) }
         return GroupDto(
             id = groupId.toString(),
             name = name,

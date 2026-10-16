@@ -20,7 +20,12 @@ data class UserSummaryDto(
     val id: String,
     val username: String,
     val displayName: String?,
+    /** An uploaded photo, as a path on this server (`/avatars/…`). Shown before the emoji. */
     val avatarUrl: String?,
+    /** Without a photo: an emoji on an [avatarColor] circle, instead of the first letter. */
+    val avatarEmoji: String? = null,
+    /** `#RRGGBB`. */
+    val avatarColor: String? = null,
     val friendship: FriendshipState,
 )
 
@@ -33,7 +38,8 @@ data class UserSearchPageDto(
 
 @Serializable
 data class ProfileStatsDto(
-    val likes: Int,
+    /** Null when their likes are private to you. */
+    val likes: Int?,
     val ratings: Int,
     val comments: Int,
     val friends: Int,
@@ -46,10 +52,18 @@ data class UserProfileDto(
     val username: String,
     val displayName: String?,
     val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
     val memberSince: String,
     val isMe: Boolean,
     val friendship: FriendshipState,
     val stats: ProfileStatsDto,
     /** Their newest likes, newest first (at most 10). */
     val recentLikes: List<MovieSummaryDto>,
+    /** Their likes are private and you aren't friends: the like count is null and the list empty. */
+    val likesHidden: Boolean,
+    /** Whether their privacy settings let you send them a friend request. */
+    val canAddFriend: Boolean,
+    /** Whether you can chat with them one-to-one: friends, and neither of you has messages off. */
+    val canMessage: Boolean,
 )

@@ -34,7 +34,12 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 |---|---|---|---|
 | GET | `/health` | – | database check |
 | POST | `/auth/register`, `/auth/login` | – | returns `{token, user}` |
-| GET / PATCH | `/me` | JWT | own profile |
+| GET / PATCH | `/me` | JWT | own profile with privacy settings / `{displayName, username, avatarEmoji, avatarColor}` (blank clears; 409 `USERNAME_TAKEN`) |
+| DELETE | `/me` | JWT | `{password}`: deletes the account and everything in it; owned groups go to the next member (204) |
+| PATCH | `/me/privacy` | JWT | `{showInMatches, privateLikes, friendRequestsFrom, messagesFrom}`, each optional; `friendRequestsFrom` is EVERYONE, MATCHES or NOBODY, `messagesFrom` FRIENDS or NOBODY. Enforced on matches, profiles, friend requests and direct chats, each optional |
+| PUT | `/me/email` / `/me/password` | JWT | `{email, password}` / `{currentPassword, newPassword}`; a wrong password is 403 `WRONG_PASSWORD` (not 401, so the app stays logged in) |
+| POST / DELETE | `/me/avatar` | JWT | body = the picture (JPEG, PNG or WebP, ≤ 2 MB, checked by its bytes) / remove it |
+| GET | `/avatars/{name}` | public | a profile picture; new name per upload, cached for a year |
 | GET | `/users/search?q=&page=` | JWT | people by username or display name (2+ characters, ignoring case), exact matches first; 20 per page with `hasMore`; each has `friendship` |
 | GET | `/users/{userId}` | JWT | public profile: name, member since, counts (likes, ratings, comments, friends), 10 newest likes, `friendship`, `isMe`; never the email |
 | GET | `/friends` | JWT | your friends, by name |
@@ -103,3 +108,4 @@ src/main/kotlin/com/example/movielist/backend/
 | `DB_USER` / `DB_PASSWORD` | `movielist` / `movielist` | |
 | `JWT_SECRET` | dev placeholder | `openssl rand -base64 48` in production |
 | `TMDB_TOKEN` | empty | TMDB "API Read Access Token"; a `Bearer ` prefix is accepted |
+| `UPLOAD_DIR` | `uploads` | where profile pictures are stored; a Docker volume in production |

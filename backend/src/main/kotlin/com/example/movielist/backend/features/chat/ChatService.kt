@@ -8,8 +8,10 @@ import com.example.movielist.backend.db.Users
 import com.example.movielist.backend.db.query
 import com.example.movielist.backend.db.violatedUniqueConstraint
 import com.example.movielist.backend.features.users.FriendshipState
+import com.example.movielist.backend.features.users.MessagesFrom
 import com.example.movielist.backend.features.users.UserSummaryDto
 import com.example.movielist.backend.features.users.friendshipStates
+import com.example.movielist.backend.features.users.toUserSummary
 import com.example.movielist.backend.plugins.ApiException
 import com.example.movielist.backend.plugins.NotFoundException
 import com.example.movielist.backend.plugins.ValidationException
@@ -38,6 +40,8 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeParseException
 import java.util.UUID
+
+class MessagesOffException(message: String) : ApiException(HttpStatusCode.Forbidden, "MESSAGES_OFF", message)
 
 class NotFriendsChatException :
     ApiException(HttpStatusCode.Forbidden, "NOT_FRIENDS", "You can only chat one-to-one with your friends")
@@ -122,6 +126,7 @@ class ChatService(
                 // Unfriending ends the one-to-one chat: the history stays, new messages don't.
                 val other = members.single { it != me }
                 if (friendshipStates(me, listOf(other))[other] != FriendshipState.FRIENDS) throw NotFriendsChatException()
+                requireMessagesOpen(me, other)
             }
             val now = OffsetDateTime.now(clock)
             val id = Messages.insert {
@@ -157,6 +162,7 @@ class ChatService(
     private fun JdbcTransaction.findOrCreateDirect(me: UUID, otherId: UUID): ConversationDto {
         if (Users.selectAll().where { Users.id eq otherId }.empty()) throw NotFoundException("No user with id $otherId")
         if (friendshipStates(me, listOf(otherId))[otherId] != FriendshipState.FRIENDS) throw NotFriendsChatException()
+        requireMessagesOpen(me, otherId)
         val key = listOf(me, otherId).sortedBy { it.toString() }.joinToString(":")
         val existing = Conversations.select(Conversations.id).where { Conversations.directKey eq key }.singleOrNull()
         val conversationId = existing?.get(Conversations.id) ?: run {
@@ -176,6 +182,15 @@ class ChatService(
         return toDto(me, conversationRow(conversationId))
     }
 
+    /** Either of you can turn one-to-one messages off ("who can message me": nobody). */
+    private fun JdbcTransaction.requireMessagesOpen(me: UUID, other: UUID) {
+        val closed = Users.select(Users.id, Users.messagesFrom)
+            .where { Users.id inList listOf(me, other) }
+            .associate { it[Users.id] to (it[Users.messagesFrom] == MessagesFrom.NOBODY.name) }
+        if (closed[me] == true) throw MessagesOffException("You've turned one-to-one messages off in your privacy settings")
+        if (closed[other] == true) throw MessagesOffException("They aren't taking messages")
+    }
+
     private fun JdbcTransaction.toDto(me: UUID, row: ResultRow): ConversationDto {
         val conversationId = row[Conversations.id]
         val others = ConversationMembers.join(Users, JoinType.INNER, ConversationMembers.userId, Users.id)
@@ -183,15 +198,7 @@ class ChatService(
             .where { (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId neq me) }
             .toList()
         val states = friendshipStates(me, others.map { it[Users.id] })
-        val members = others.map {
-            UserSummaryDto(
-                id = it[Users.id].toString(),
-                username = it[Users.username],
-                displayName = it[Users.displayName],
-                avatarUrl = it[Users.avatarUrl],
-                friendship = states[it[Users.id]] ?: FriendshipState.NONE,
-            )
-        }.sortedBy { (it.displayName ?: it.username).lowercase() }
+        val members = others.map { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) }.sortedBy { (it.displayName ?: it.username).lowercase() }
 
         val last = Messages.selectAll()
             .where { Messages.conversationId eq conversationId }

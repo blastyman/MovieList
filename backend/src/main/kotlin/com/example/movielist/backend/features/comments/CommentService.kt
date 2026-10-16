@@ -205,7 +205,8 @@ class CommentService(
             .join(Ratings, JoinType.LEFT, Comments.userId, Ratings.userId) { Ratings.movieId eq Comments.movieId }
             .select(
                 Comments.id, Comments.movieId, Comments.parentId, Comments.body, Comments.createdAt,
-                Comments.editedAt, Users.id, Users.username, Users.displayName, Ratings.score,
+                Comments.editedAt, Users.id, Users.username, Users.displayName, Users.avatarUrl, Users.avatarEmoji,
+                Users.avatarColor, Ratings.score,
             )
 
     private fun ResultRow.toDto(viewerId: UUID, replyCount: Int) = CommentDto(
@@ -215,6 +216,9 @@ class CommentService(
             id = this[Users.id].toString(),
             username = this[Users.username],
             displayName = this[Users.displayName],
+            avatarUrl = this[Users.avatarUrl],
+            avatarEmoji = this[Users.avatarEmoji],
+            avatarColor = this[Users.avatarColor],
         ),
         body = this[Comments.body],
         createdAt = this[Comments.createdAt].toInstant().toString(),

@@ -6,7 +6,9 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.statements.UpdateStatement
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
@@ -20,6 +22,12 @@ data class UserRecord(
     val passwordHash: String,
     val displayName: String?,
     val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
+    val showInMatches: Boolean,
+    val privateLikes: Boolean,
+    val friendRequestsFrom: FriendRequestsFrom,
+    val messagesFrom: MessagesFrom,
     val createdAt: OffsetDateTime,
 )
 
@@ -55,21 +63,15 @@ class UserRepository(private val db: Database) {
         !Users.selectAll().where { Users.email.lowerCase() eq email.lowercase() }.empty()
     }
 
-    /** Pass a value to change it; `clear*` sets the column back to null. */
-    suspend fun updateProfile(
-        id: UUID,
-        displayName: String?,
-        clearDisplayName: Boolean,
-        avatarUrl: String?,
-        clearAvatarUrl: Boolean,
-    ): UserRecord? = db.query {
-        if (displayName != null || clearDisplayName || avatarUrl != null || clearAvatarUrl) {
-            Users.update({ Users.id eq id }) {
-                if (clearDisplayName) it[Users.displayName] = null else if (displayName != null) it[Users.displayName] = displayName
-                if (clearAvatarUrl) it[Users.avatarUrl] = null else if (avatarUrl != null) it[Users.avatarUrl] = avatarUrl
-            }
-        }
+    /** Sets whatever [change] sets, then returns the user as they are now. */
+    suspend fun update(id: UUID, change: (UpdateStatement) -> Unit): UserRecord? = db.query {
+        Users.update({ Users.id eq id }) { change(it) }
         Users.selectAll().where { Users.id eq id }.singleOrNull()?.toUserRecord()
+    }
+
+    /** Removes the account; the database removes everything that belongs to it with it. */
+    suspend fun delete(id: UUID) {
+        db.query { Users.deleteWhere { Users.id eq id } }
     }
 }
 
@@ -80,5 +82,11 @@ private fun ResultRow.toUserRecord() = UserRecord(
     passwordHash = this[Users.passwordHash],
     displayName = this[Users.displayName],
     avatarUrl = this[Users.avatarUrl],
+    avatarEmoji = this[Users.avatarEmoji],
+    avatarColor = this[Users.avatarColor],
+    showInMatches = this[Users.showInMatches],
+    privateLikes = this[Users.privateLikes],
+    friendRequestsFrom = FriendRequestsFrom.valueOf(this[Users.friendRequestsFrom]),
+    messagesFrom = MessagesFrom.valueOf(this[Users.messagesFrom]),
     createdAt = this[Users.createdAt],
 )

@@ -4,6 +4,7 @@ import com.example.movielist.backend.db.MovieReactions
 import com.example.movielist.backend.db.MoviesCache
 import com.example.movielist.backend.db.Reaction
 import com.example.movielist.backend.db.query
+import com.example.movielist.backend.features.matches.MatchService
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.toSummary
 import com.example.movielist.backend.plugins.ValidationException
@@ -28,6 +29,7 @@ import java.util.UUID
 class ReactionService(
     private val db: Database,
     private val movies: MovieService,
+    private val matches: MatchService,
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
@@ -47,7 +49,9 @@ class ReactionService(
                 it[createdAt] = OffsetDateTime.now(clock)
             }
         }
-        return ReactionDto(movieId, reaction)
+        if (reaction != Reaction.LIKE) return ReactionDto(movieId, reaction)
+        val matched = matches.peopleWhoLike(userId, movieId)
+        return ReactionDto(movieId, reaction, matched.people, matched.count)
     }
 
     suspend fun removeReaction(userId: UUID, movieId: Int) {

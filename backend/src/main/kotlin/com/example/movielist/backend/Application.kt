@@ -11,6 +11,8 @@ import com.example.movielist.backend.features.comments.commentRoutes
 import com.example.movielist.backend.features.friends.FriendService
 import com.example.movielist.backend.features.friends.friendRoutes
 import com.example.movielist.backend.features.health.healthRoutes
+import com.example.movielist.backend.features.matches.MatchService
+import com.example.movielist.backend.features.matches.matchRoutes
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.movieRoutes
 import com.example.movielist.backend.features.ratings.RatingService
@@ -65,7 +67,8 @@ fun Application.module(
     val tmdbClient = TmdbClient(tmdbEngine, config.tmdbToken)
     monitor.subscribe(ApplicationStopped) { tmdbClient.close() }
     val movieService = MovieService(tmdbClient, database)
-    val reactionService = ReactionService(database, movieService)
+    val matchService = MatchService(database)
+    val reactionService = ReactionService(database, movieService, matchService)
     val ratingService = RatingService(database, movieService)
     val commentService = CommentService(database, movieService)
     val userService = UserService(database)
@@ -85,5 +88,6 @@ fun Application.module(
         commentRoutes(commentService)
         userRoutes(userService)
         friendRoutes(friendService)
+        matchRoutes(matchService)
     }
 }

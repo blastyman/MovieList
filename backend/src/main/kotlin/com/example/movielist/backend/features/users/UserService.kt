@@ -140,25 +140,6 @@ class UserService(private val db: Database) {
 
     private data class FoundUser(val id: UUID, val username: String, val displayName: String?, val avatarUrl: String?)
 
-    /** The viewer's friendship state with each of [userIds]; users with no row are left out. */
-    private fun JdbcTransaction.friendshipStates(viewerId: UUID, userIds: List<UUID>): Map<UUID, FriendshipState> {
-        if (userIds.isEmpty()) return emptyMap()
-        return Friendships.selectAll()
-            .where {
-                ((Friendships.requesterId eq viewerId) and (Friendships.addresseeId inList userIds)) or
-                    ((Friendships.addresseeId eq viewerId) and (Friendships.requesterId inList userIds))
-            }
-            .associate { row ->
-                val sentByViewer = row[Friendships.requesterId] == viewerId
-                val other = if (sentByViewer) row[Friendships.addresseeId] else row[Friendships.requesterId]
-                other to when {
-                    row[Friendships.status] == FriendshipStatus.ACCEPTED.name -> FriendshipState.FRIENDS
-                    sentByViewer -> FriendshipState.REQUEST_SENT
-                    else -> FriendshipState.REQUEST_RECEIVED
-                }
-            }
-    }
-
     /** SELECT count(*) FROM [table] WHERE [condition]. */
     private fun JdbcTransaction.countWhere(table: Table, condition: () -> Op<Boolean>): Int {
         val count = Count(intLiteral(1))

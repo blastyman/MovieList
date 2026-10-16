@@ -47,7 +47,8 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | GET | `/movies/search?q=&page=` | JWT | cached 10 min |
 | GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down), plus `avgRating`, `ratingCount`, `myRating`, `myReaction`, `commentCount` |
 | GET | `/movies/{id}/trailers` | JWT | YouTube trailers and teasers, best first (`youtubeKey`, `name`); cached 6 h; empty if none |
-| PUT / DELETE | `/movies/{id}/reaction` | JWT | `{reaction: LIKE\|DISLIKE}`; replaces any earlier one |
+| PUT / DELETE | `/movies/{id}/reaction` | JWT | `{reaction: LIKE\|DISLIKE}`; replaces any earlier one; a LIKE answers with `matchedPeople` (up to 10 others who like it, each with `user` and `sharedLikes`, most likes in common first) and `matchedCount` |
+| GET | `/matches` | JWT | movies you like that anyone else (friend or stranger) likes too, newest like first, with `people` (best 10) and `peopleCount` |
 | GET | `/me/reactions/ids` | JWT | `{liked: [ids], disliked: [ids]}` |
 | GET | `/me/reactions?type=&limit=&before=` | JWT | movies with title/poster, newest first; `nextCursor` → `before` |
 | PUT / DELETE | `/movies/{id}/rating` | JWT | `{score: 1..10}`; both return the updated stats |

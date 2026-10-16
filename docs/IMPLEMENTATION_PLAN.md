@@ -31,7 +31,11 @@ migration V3 adds trigram indexes for name search) ·
 Phase 8 ✅ (friends: requests with auto-accept of crossed requests, accept/decline/cancel/remove, friends screen,
 friendship button on profiles; matches: `GET /matches` lists movies you like that others like too, friends or strangers, ranked by
 likes in common; liking one returns `matchedPeople` so the app shows an "It's a Match!" popup whose person
-opens their profile, to meet people through movies).
+opens their profile, to meet people through movies) ·
+Phase 9 ✅ (friend groups of at most 10 with a GROUP conversation each, limit enforced under a row lock; groups
+list, new-group screen with friend picker and "n/10" counter, group screen with the movies everyone likes, members,
+add/remove/leave/rename; the match popup says when a like completes a group. Removing a friend keeps them in
+shared groups. Person matches stay on the Matches screen; group matches live on each group's screen).
 
 ## 1. Required features
 

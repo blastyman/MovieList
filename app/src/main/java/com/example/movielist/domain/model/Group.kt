@@ -11,6 +11,8 @@ data class Group(
     val conversationId: String,
     val members: List<UserSummary>,
     val maxMembers: Int,
+    /** The group's icon; without a photo or emoji, the group symbol. */
+    val avatar: Avatar = Avatar.NONE,
 ) {
     val isFull: Boolean
         get() = members.size >= maxMembers

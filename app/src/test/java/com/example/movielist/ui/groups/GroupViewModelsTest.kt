@@ -1,5 +1,6 @@
 package com.example.movielist.ui.groups
 
+import com.example.movielist.domain.model.Avatar
 import com.example.movielist.domain.model.FriendshipState
 import com.example.movielist.domain.model.GroupMatch
 import com.example.movielist.domain.model.Movie
@@ -204,6 +205,37 @@ class GroupViewModelsTest {
             assertFalse(viewModel.uiState.confirmLeave)
             assertTrue(viewModel.uiState.left)
             assertTrue(groups.groups.isEmpty())
+        }
+
+    @Test
+    fun theOwnerChangesTheGroupIcon() =
+        runTest(dispatcher) {
+            val group = groups.create("Club", listOf("1"))
+            val viewModel = GroupViewModel(groups, friends)
+            viewModel.load(group.id)
+            advanceUntilIdle()
+
+            viewModel.startEditIcon()
+            assertTrue(viewModel.uiState.editingIcon)
+            viewModel.setIconEmoji("🎬")
+            viewModel.setIconColor("#5E35B1")
+            advanceUntilIdle()
+            assertEquals("🎬", viewModel.uiState.group?.avatar?.emoji)
+            assertEquals("#5E35B1", viewModel.uiState.group?.avatar?.color)
+
+            viewModel.uploadIcon(byteArrayOf(1, 2, 3))
+            assertTrue(viewModel.uiState.uploadingIcon)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.uploadingIcon)
+            assertNotNull(viewModel.uiState.group?.avatar?.photoUrl)
+
+            viewModel.removeIconPhoto()
+            viewModel.removeIconEmoji()
+            viewModel.setIconColor(null)
+            advanceUntilIdle()
+            assertEquals(Avatar.NONE, viewModel.uiState.group?.avatar)
+            viewModel.stopEditIcon()
+            assertFalse(viewModel.uiState.editingIcon)
         }
 
     @Test

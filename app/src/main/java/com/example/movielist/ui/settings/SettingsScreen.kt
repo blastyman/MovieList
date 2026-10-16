@@ -1,11 +1,5 @@
 package com.example.movielist.ui.settings
 
-import android.view.ContextThemeWrapper
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,15 +16,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,13 +41,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -64,18 +52,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
-import androidx.emoji2.emojipicker.EmojiPickerView
 import com.example.movielist.R
 import com.example.movielist.domain.model.Account
 import com.example.movielist.domain.model.FriendRequestsFrom
 import com.example.movielist.domain.model.MessagesFrom
+import com.example.movielist.ui.components.AvatarEditor
+import com.example.movielist.ui.components.AvatarEditorActions
 import com.example.movielist.ui.components.UserAvatar
-import com.example.movielist.ui.components.parseColor
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
-import kotlinx.coroutines.launch
 
 /** Your profile picture and names, account, privacy, and how the app behaves. */
 @Composable
@@ -121,60 +106,21 @@ fun SettingsScreen(state: SettingsUiState, viewModel: SettingsViewModel, onBack:
 
 @Composable
 private fun ProfileSection(account: Account, state: SettingsUiState, viewModel: SettingsViewModel) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val jpeg = profilePhotoJpeg(context, uri)
-                if (jpeg == null) viewModel.photoUnreadable() else viewModel.uploadPhoto(jpeg)
-            }
-        }
-    }
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Box(contentAlignment = Alignment.Center) {
-            UserAvatar(account.name, size = 104.dp, avatar = account.avatar)
-            if (state.edit.uploadingPhoto) CircularProgressIndicator(color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                Icon(Icons.Default.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.settings_photo), color = Color.White)
-            }
-            OutlinedButton(onClick = { viewModel.open(SettingsDialog.EMOJI) }) {
-                Text(account.avatar.emoji ?: "😀")
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.settings_emoji), color = Color.White)
-            }
-        }
-        if (account.avatar.photoUrl != null || account.avatar.emoji != null) {
-            TextButton(onClick = { if (account.avatar.photoUrl != null) viewModel.removePhoto() else viewModel.removeEmoji() }) {
-                Text(
-                    stringResource(if (account.avatar.photoUrl != null) R.string.settings_remove_photo else R.string.settings_remove_emoji),
-                    color = Color.Gray,
-                )
-            }
-        }
-        // Behind the emoji or the first letter (a photo covers it).
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
-            AVATAR_COLORS.forEach { hex ->
-                val selected = (account.avatar.color ?: AVATAR_COLORS.first()).equals(hex, ignoreCase = true)
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier =
-                        Modifier.size(28.dp)
-                            .clip(CircleShape)
-                            .background(parseColor(hex) ?: MovieRed)
-                            .border(if (selected) 2.dp else 0.dp, Color.White, CircleShape)
-                            .clickable(onClickLabel = hex) { viewModel.pickColor(if (hex == AVATAR_COLORS.first()) null else hex) },
-                ) {
-                    if (selected) Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                }
-            }
-        }
+    AvatarEditor(
+        avatar = account.avatar,
+        uploading = state.edit.uploadingPhoto,
+        actions =
+            AvatarEditorActions(
+                uploadPhoto = viewModel::uploadPhoto,
+                photoUnreadable = viewModel::photoUnreadable,
+                removePhoto = viewModel::removePhoto,
+                pickEmoji = viewModel::pickEmoji,
+                removeEmoji = viewModel::removeEmoji,
+                pickColor = viewModel::pickColor,
+            ),
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
+        UserAvatar(account.name, size = 104.dp, avatar = account.avatar)
     }
 
     Section(stringResource(R.string.settings_profile)) {
@@ -333,25 +279,6 @@ private fun SettingsDialogs(account: Account, edit: SettingsEditState, viewModel
                 onDismiss = viewModel::closeDialog,
                 onSave = { viewModel.deleteAccount(it[0]) },
             )
-        SettingsDialog.EMOJI ->
-            Dialog(onDismissRequest = viewModel::closeDialog) {
-                Card(colors = CardDefaults.cardColors(containerColor = MovieSurface), shape = RoundedCornerShape(20.dp)) {
-                    Text(
-                        stringResource(R.string.settings_pick_emoji),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    AndroidView(
-                        factory = { context ->
-                            EmojiPickerView(ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault)).apply {
-                                setOnEmojiPickedListener { viewModel.pickEmoji(it.emoji) }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(360.dp),
-                    )
-                }
-            }
         null -> Unit
     }
 }
@@ -400,6 +327,3 @@ private fun TextDialog(
         containerColor = MovieSurface,
     )
 }
-
-/** Behind an emoji or a letter. The first is the app's red, the default. */
-private val AVATAR_COLORS = listOf("#E50914", "#F57C00", "#FBC02D", "#43A047", "#00897B", "#1E88E5", "#5E35B1", "#D81B60", "#546E7A")

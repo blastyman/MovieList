@@ -31,6 +31,22 @@ class FakeGroups(private val me: UserSummary, private val people: (String) -> Us
 
     override suspend fun rename(groupId: String, name: String) = update(groupId) { it.copy(name = name) }
 
+    // Like the server: null keeps a part, blank removes it.
+    override suspend fun updateIcon(groupId: String, emoji: String?, color: String?) = update(groupId) {
+        val avatar = it.avatar
+        it.copy(
+            avatar = avatar.copy(
+                emoji = if (emoji == null) avatar.emoji else emoji.ifEmpty { null },
+                color = if (color == null) avatar.color else color.ifEmpty { null },
+            )
+        )
+    }
+
+    override suspend fun uploadIcon(groupId: String, jpeg: ByteArray) =
+        update(groupId) { it.copy(avatar = it.avatar.copy(photoUrl = "http://server/avatars/$groupId.jpg")) }
+
+    override suspend fun removeIcon(groupId: String) = update(groupId) { it.copy(avatar = it.avatar.copy(photoUrl = null)) }
+
     override suspend fun addMember(groupId: String, userId: String) = update(groupId) {
         if (it.members.any { member -> member.id == userId }) it
         else if (it.isFull) throw httpError(409)

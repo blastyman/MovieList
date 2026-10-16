@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.movielist.R
 import com.example.movielist.domain.model.Group
+import com.example.movielist.ui.components.GroupAvatar
 import com.example.movielist.ui.components.ScreenHeader
 import com.example.movielist.ui.components.UserAvatar
 import com.example.movielist.ui.theme.MovieRed
@@ -108,6 +109,8 @@ private fun GroupCard(group: Group, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                GroupAvatar(group.avatar, size = 40.dp)
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     group.name,
                     color = Color.White,

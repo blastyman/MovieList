@@ -63,6 +63,9 @@ import com.example.movielist.R
 import com.example.movielist.domain.model.Group
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.UserSummary
+import com.example.movielist.ui.components.AvatarEditor
+import com.example.movielist.ui.components.AvatarEditorActions
+import com.example.movielist.ui.components.GroupAvatar
 import com.example.movielist.ui.components.MoviePosterItem
 import com.example.movielist.ui.components.UserAvatar
 import com.example.movielist.ui.theme.MovieButton
@@ -86,6 +89,9 @@ class GroupActions(
     val onNameDraftChange: (String) -> Unit,
     val saveRename: () -> Unit,
     val cancelRename: () -> Unit,
+    val startEditIcon: () -> Unit,
+    val stopEditIcon: () -> Unit,
+    val icon: AvatarEditorActions,
 )
 
 /** One group: the movies everyone likes up top, then the members and what you can do. */
@@ -106,6 +112,15 @@ fun GroupScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.profile_back), tint = Color.White)
             }
             if (group != null) {
+                // The owner taps the icon to change it.
+                GroupAvatar(
+                    group.avatar,
+                    size = 40.dp,
+                    modifier =
+                        if (group.isOwner(myId)) Modifier.clickable(onClickLabel = stringResource(R.string.group_icon), onClick = actions.startEditIcon)
+                        else Modifier,
+                )
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     group.name,
                     color = Color.White,
@@ -139,6 +154,7 @@ fun GroupScreen(
     }
 
     if (group != null) GroupDialogs(group, state, myId, actions)
+    if (group != null && state.editingIcon) IconDialog(group, state.uploadingIcon, actions)
 }
 
 @Composable
@@ -419,6 +435,33 @@ private fun LeaveDialog(group: Group, ownerLeaving: Boolean, actions: GroupActio
                 TextButton(onClick = actions.cancelLeave, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.comments_cancel), color = Color.Gray)
                 }
+            }
+        }
+    }
+}
+
+/** The owner changes the group's icon: a photo, or an emoji on a colour. */
+@Composable
+private fun IconDialog(group: Group, uploading: Boolean, actions: GroupActions) {
+    Dialog(onDismissRequest = actions.stopEditIcon) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MovieSurface),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+                Text(
+                    stringResource(R.string.group_icon),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                AvatarEditor(avatar = group.avatar, uploading = uploading, actions = actions.icon) {
+                    GroupAvatar(group.avatar, size = 96.dp)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = actions.stopEditIcon) { Text(stringResource(R.string.done), color = MovieRed) }
             }
         }
     }

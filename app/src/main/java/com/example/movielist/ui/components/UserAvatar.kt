@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,21 +31,36 @@ import com.example.movielist.ui.theme.MovieRed
  */
 @Composable
 fun UserAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 44.dp, avatar: Avatar = Avatar.NONE) {
-    val background = avatar.color?.let(::parseColor) ?: MovieRed
+    AvatarCircle(avatar, size, modifier, background = MovieRed) {
+        Text(
+            text = name.firstOrNull()?.uppercase() ?: "?",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = (size.value * 0.42f).sp,
+        )
+    }
+}
+
+/** A group's icon: its photo, else its emoji on its colour, else the group symbol. */
+@Composable
+fun GroupAvatar(avatar: Avatar, modifier: Modifier = Modifier, size: Dp = 44.dp) {
+    // Without a colour of its own, a soft red behind a red symbol, as groups always looked.
+    val plain = avatar.color == null
+    AvatarCircle(avatar, size, modifier, background = if (plain) MovieRed.copy(alpha = 0.2f) else MovieRed) {
+        Icon(Icons.Default.Groups, contentDescription = null, tint = if (plain) MovieRed else Color.White, modifier = Modifier.size(size * 0.55f))
+    }
+}
+
+/** The circle both use: photo over everything, else emoji on the colour, else [fallback]. */
+@Composable
+private fun AvatarCircle(avatar: Avatar, size: Dp, modifier: Modifier, background: Color, fallback: @Composable () -> Unit) {
     Box(
-        modifier = modifier.size(size).clip(CircleShape).background(background, CircleShape),
+        modifier = modifier.size(size).clip(CircleShape).background(avatar.color?.let(::parseColor) ?: background, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        if (avatar.emoji != null && avatar.photoUrl == null) {
-            Text(text = avatar.emoji, fontSize = (size.value * 0.5f).sp)
-        } else {
-            Text(
-                text = name.firstOrNull()?.uppercase() ?: "?",
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.42f).sp,
-            )
-        }
+        // Also shows while a photo loads, or if it can't.
+        if (avatar.emoji != null && avatar.photoUrl == null) Text(text = avatar.emoji, fontSize = (size.value * 0.5f).sp)
+        else fallback()
         if (avatar.photoUrl != null) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(avatar.photoUrl).crossfade(true).build(),

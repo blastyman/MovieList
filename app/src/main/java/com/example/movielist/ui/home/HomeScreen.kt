@@ -42,6 +42,7 @@ import com.example.movielist.ui.chat.ChatViewModel
 import com.example.movielist.ui.chat.ChatsScreen
 import com.example.movielist.ui.chat.ChatsViewModel
 import com.example.movielist.ui.comments.CommentsSection
+import com.example.movielist.ui.components.AvatarEditorActions
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.details.MovieDetailsScreen
 import com.example.movielist.ui.lists.MovieListsScreen
@@ -366,6 +367,17 @@ private fun SectionNavHost(
                         onNameDraftChange = group::onNameDraftChange,
                         saveRename = group::saveRename,
                         cancelRename = group::cancelRename,
+                        startEditIcon = group::startEditIcon,
+                        stopEditIcon = group::stopEditIcon,
+                        icon =
+                            AvatarEditorActions(
+                                uploadPhoto = group::uploadIcon,
+                                photoUnreadable = group::iconUnreadable,
+                                removePhoto = group::removeIconPhoto,
+                                pickEmoji = group::setIconEmoji,
+                                removeEmoji = group::removeIconEmoji,
+                                pickColor = group::setIconColor,
+                            ),
                     ),
                 onBack = { navController.popBackStack() },
                 onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.MATCH, movie) },

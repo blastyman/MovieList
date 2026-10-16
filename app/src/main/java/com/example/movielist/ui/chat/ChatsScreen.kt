@@ -19,10 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +41,7 @@ import com.example.movielist.R
 import com.example.movielist.domain.model.Avatar
 import com.example.movielist.domain.model.Conversation
 import com.example.movielist.domain.model.ConversationType
+import com.example.movielist.ui.components.GroupAvatar
 import com.example.movielist.ui.components.ScreenHeader
 import com.example.movielist.ui.components.UserAvatar
 import com.example.movielist.ui.theme.MovieRed
@@ -147,9 +145,7 @@ private fun ConversationRow(conversation: Conversation, myId: String?, onClick: 
 @Composable
 fun ConversationAvatar(conversation: Conversation, size: Dp = 48.dp) {
     if (conversation.type == ConversationType.GROUP) {
-        Box(modifier = Modifier.size(size).background(MovieRed.copy(alpha = 0.2f), CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Default.Groups, contentDescription = null, tint = MovieRed, modifier = Modifier.size(size * 0.55f))
-        }
+        GroupAvatar(conversation.avatar, size = size)
     } else {
         UserAvatar(conversation.title, size = size, avatar = conversation.members.firstOrNull()?.avatar ?: Avatar.NONE)
     }

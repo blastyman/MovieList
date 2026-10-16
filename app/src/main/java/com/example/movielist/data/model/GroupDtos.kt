@@ -9,7 +9,8 @@ import java.time.Instant
 
 data class CreateGroupRequest(val name: String, val memberIds: List<String>)
 
-data class RenameGroupRequest(val name: String)
+/** Null leaves a field as it is; a blank emoji or colour removes it. */
+data class UpdateGroupRequest(val name: String? = null, val avatarEmoji: String? = null, val avatarColor: String? = null)
 
 data class AddMemberRequest(val userId: String)
 
@@ -20,8 +21,20 @@ data class GroupDto(
     val conversationId: String,
     val members: List<UserSummaryDto>?,
     val maxMembers: Int,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
 ) {
-    fun toGroup() = Group(id, name, ownerId, conversationId, members.orEmpty().map { it.toUserSummary() }, maxMembers)
+    fun toGroup() =
+        Group(
+            id = id,
+            name = name,
+            ownerId = ownerId,
+            conversationId = conversationId,
+            members = members.orEmpty().map { it.toUserSummary() },
+            maxMembers = maxMembers,
+            avatar = avatarOf(avatarUrl, avatarEmoji, avatarColor),
+        )
 }
 
 data class GroupMatchDto(val movie: MovieDto, val matchedAt: String) {

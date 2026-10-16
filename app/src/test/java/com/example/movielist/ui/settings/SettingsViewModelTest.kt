@@ -142,12 +142,10 @@ class SettingsViewModelTest {
         runTest(dispatcher) {
             val viewModel = viewModel()
 
-            viewModel.open(SettingsDialog.EMOJI)
             viewModel.pickEmoji("🍿")
             viewModel.pickColor("#1E88E5")
             advanceUntilIdle()
             assertEquals(Avatar(emoji = "🍿", color = "#1E88E5"), viewModel.uiState.account?.avatar)
-            assertNull(viewModel.uiState.edit.dialog) // picking closes the picker
 
             viewModel.uploadPhoto(byteArrayOf(1, 2, 3))
             assertTrue(viewModel.uiState.edit.uploadingPhoto)

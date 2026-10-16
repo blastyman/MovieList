@@ -4,7 +4,8 @@ import com.example.movielist.data.model.AddMemberRequest
 import com.example.movielist.data.model.CreateGroupRequest
 import com.example.movielist.data.model.GroupDto
 import com.example.movielist.data.model.GroupMatchDto
-import com.example.movielist.data.model.RenameGroupRequest
+import com.example.movielist.data.model.UpdateGroupRequest
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -20,7 +21,12 @@ interface GroupApi {
 
     @GET("groups/{id}") suspend fun group(@Path("id") groupId: String): GroupDto
 
-    @PATCH("groups/{id}") suspend fun rename(@Path("id") groupId: String, @Body body: RenameGroupRequest): GroupDto
+    @PATCH("groups/{id}") suspend fun update(@Path("id") groupId: String, @Body body: UpdateGroupRequest): GroupDto
+
+    /** The body is the icon picture itself (JPEG). Owner only. */
+    @POST("groups/{id}/avatar") suspend fun uploadIcon(@Path("id") groupId: String, @Body image: RequestBody): GroupDto
+
+    @DELETE("groups/{id}/avatar") suspend fun removeIcon(@Path("id") groupId: String): GroupDto
 
     @GET("groups/{id}/matches") suspend fun matches(@Path("id") groupId: String): List<GroupMatchDto>
 

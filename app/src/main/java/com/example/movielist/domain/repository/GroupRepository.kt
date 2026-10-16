@@ -15,6 +15,14 @@ interface GroupRepository {
     /** Owner only. */
     suspend fun rename(groupId: String, name: String): Group
 
+    /** Owner only. Null leaves a part as it is; a blank string removes it. */
+    suspend fun updateIcon(groupId: String, emoji: String? = null, color: String? = null): Group
+
+    /** Owner only. [jpeg] is already cropped square and shrunk. */
+    suspend fun uploadIcon(groupId: String, jpeg: ByteArray): Group
+
+    suspend fun removeIcon(groupId: String): Group
+
     suspend fun addMember(groupId: String, userId: String): Group
 
     /** The owner removes someone; returns the group without them. */

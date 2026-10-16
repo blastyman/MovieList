@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** The dialog that's open, if any. */
-enum class SettingsDialog { DISPLAY_NAME, HANDLE, EMAIL, PASSWORD, DELETE, EMOJI }
+enum class SettingsDialog { DISPLAY_NAME, HANDLE, EMAIL, PASSWORD, DELETE }
 
 /** What the settings screen shows besides the account and app settings themselves. */
 data class SettingsEditState(
@@ -76,7 +76,7 @@ class SettingsViewModel(
         save { accountSettings.updateProfile(username = trimmed) }
     }
 
-    fun pickEmoji(emoji: String) = save { accountSettings.updateProfile(avatarEmoji = emoji) }
+    fun pickEmoji(emoji: String) = quick { accountSettings.updateProfile(avatarEmoji = emoji) }
 
     fun removeEmoji() = quick { accountSettings.updateProfile(avatarEmoji = "") }
 

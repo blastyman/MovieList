@@ -60,6 +60,7 @@
     <string name="group_leave_owner_text">You own this group. Leave and the member who joined first takes over, or disband it to delete it for everyone.</string>
     <string name="group_disband">Disband group</string>
     <string name="group_rename">Rename group</string>
+    <string name="group_icon">Group icon</string>
     <string name="group_matches">movies you all like</string>
     <string name="group_matches_empty">No movie everyone likes yet. Keep swiping!</string>
     <string name="group_matches_alone">Add friends to see the movies you all like.</string>

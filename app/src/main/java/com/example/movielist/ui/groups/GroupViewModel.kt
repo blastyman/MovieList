@@ -31,6 +31,9 @@ data class GroupUiState(
     val confirmLeave: Boolean = false,
     /** The new name being typed, while renaming. */
     val nameDraft: String? = null,
+    /** The icon editor is open (owner only). */
+    val editingIcon: Boolean = false,
+    val uploadingIcon: Boolean = false,
     /** Set once the user has left; the screen then goes back. */
     val left: Boolean = false,
     val message: String? = null,
@@ -212,6 +215,49 @@ class GroupViewModel(
                         message = exception.toGroupMessage(),
                     )
                 }
+            }
+        }
+    }
+
+    // ───────────── Icon (owner only) ─────────────
+
+    fun startEditIcon() {
+        _uiState.update { it.copy(editingIcon = true) }
+    }
+
+    fun stopEditIcon() {
+        _uiState.update { it.copy(editingIcon = false) }
+    }
+
+    fun setIconEmoji(emoji: String) = iconChange { groups.updateIcon(it, emoji = emoji) }
+
+    fun removeIconEmoji() = iconChange { groups.updateIcon(it, emoji = "") }
+
+    /** [color] is `#RRGGBB`, or null for the default. */
+    fun setIconColor(color: String?) = iconChange { groups.updateIcon(it, color = color ?: "") }
+
+    /** [jpeg] is already cropped square and shrunk. */
+    fun uploadIcon(jpeg: ByteArray) {
+        _uiState.update { it.copy(uploadingIcon = true) }
+        iconChange { groups.uploadIcon(it, jpeg) }
+    }
+
+    fun removeIconPhoto() = iconChange { groups.removeIcon(it) }
+
+    fun iconUnreadable() {
+        _uiState.update { it.copy(message = "Couldn't read that picture. Try another one.") }
+    }
+
+    private fun iconChange(call: suspend (groupId: String) -> Group) {
+        val groupId = uiState.group?.id ?: return
+        viewModelScope.launch {
+            try {
+                val updated = call(groupId)
+                _uiState.update { it.copy(group = updated, uploadingIcon = false) }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update { it.copy(uploadingIcon = false, message = exception.toGroupMessage()) }
             }
         }
     }

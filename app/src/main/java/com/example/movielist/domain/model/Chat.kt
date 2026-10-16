@@ -24,6 +24,8 @@ data class Conversation(
     val lastMessage: Message?,
     val unreadCount: Int,
     val updatedAt: Instant,
+    /** A group chat's icon (the group's); one-to-one chats show the other person instead. */
+    val avatar: Avatar = Avatar.NONE,
 )
 
 /** Messages newest first; pass [nextCursor] back for older ones, null when there are none. */

@@ -27,6 +27,9 @@ data class ConversationDto(
     val type: String,
     val title: String,
     val groupId: String?,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
     val members: List<UserSummaryDto>?,
     val lastMessage: MessageDto?,
     val unreadCount: Int,
@@ -42,6 +45,7 @@ data class ConversationDto(
             lastMessage = lastMessage?.toMessage(),
             unreadCount = unreadCount,
             updatedAt = Instant.parse(updatedAt),
+            avatar = avatarOf(avatarUrl, avatarEmoji, avatarColor),
         )
 }
 

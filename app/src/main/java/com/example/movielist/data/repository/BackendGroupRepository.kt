@@ -2,11 +2,13 @@ package com.example.movielist.data.repository
 
 import com.example.movielist.data.model.AddMemberRequest
 import com.example.movielist.data.model.CreateGroupRequest
-import com.example.movielist.data.model.RenameGroupRequest
+import com.example.movielist.data.model.UpdateGroupRequest
 import com.example.movielist.data.remote.GroupApi
 import com.example.movielist.domain.model.Group
 import com.example.movielist.domain.model.GroupMatch
 import com.example.movielist.domain.repository.GroupRepository
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 
 class BackendGroupRepository(private val api: GroupApi) : GroupRepository {
@@ -18,7 +20,15 @@ class BackendGroupRepository(private val api: GroupApi) : GroupRepository {
         api.create(CreateGroupRequest(name, memberIds)).toGroup()
 
     override suspend fun rename(groupId: String, name: String): Group =
-        api.rename(groupId, RenameGroupRequest(name)).toGroup()
+        api.update(groupId, UpdateGroupRequest(name = name)).toGroup()
+
+    override suspend fun updateIcon(groupId: String, emoji: String?, color: String?): Group =
+        api.update(groupId, UpdateGroupRequest(avatarEmoji = emoji, avatarColor = color)).toGroup()
+
+    override suspend fun uploadIcon(groupId: String, jpeg: ByteArray): Group =
+        api.uploadIcon(groupId, jpeg.toRequestBody("image/jpeg".toMediaType())).toGroup()
+
+    override suspend fun removeIcon(groupId: String): Group = api.removeIcon(groupId).toGroup()
 
     override suspend fun addMember(groupId: String, userId: String): Group =
         api.addMember(groupId, AddMemberRequest(userId)).toGroup()

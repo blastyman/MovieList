@@ -1,4 +1,4 @@
-package com.example.movielist.ui.settings
+package com.example.movielist.ui.components
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -11,11 +11,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Turns a picked picture into what the server wants: upright, cropped to the centre square,
- * at most [SIZE] pixels wide, as a JPEG. A 12-megapixel photo becomes a few dozen kilobytes.
+ * Turns a picked picture into what the server wants for a profile picture or group icon:
+ * upright, cropped to the centre square, at most [SIZE] pixels wide, as a JPEG. A 12-megapixel
+ * photo becomes a few dozen kilobytes.
  * Returns null if the picture can't be read.
  */
-suspend fun profilePhotoJpeg(context: Context, uri: Uri): ByteArray? =
+suspend fun avatarPhotoJpeg(context: Context, uri: Uri): ByteArray? =
     withContext(Dispatchers.IO) {
         runCatching {
             val resolver = context.contentResolver

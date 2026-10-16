@@ -1,5 +1,6 @@
 package com.example.movielist.backend.features.movies
 
+import com.example.movielist.backend.features.comments.CommentService
 import com.example.movielist.backend.features.ratings.RatingService
 import com.example.movielist.backend.features.reactions.ReactionService
 import com.example.movielist.backend.plugins.AUTH_JWT
@@ -16,6 +17,7 @@ fun Route.movieRoutes(
     movieService: MovieService,
     ratingService: RatingService,
     reactionService: ReactionService,
+    commentService: CommentService,
 ) {
     authenticate(AUTH_JWT) {
         route("/movies") {
@@ -41,7 +43,7 @@ fun Route.movieRoutes(
                 val details = movieService.details(id)
                 val stats = ratingService.stats(call.userId, id)
                 val myReaction = reactionService.myReaction(call.userId, id)
-                call.respond(details.withSocial(stats, myReaction))
+                call.respond(details.withSocial(stats, myReaction, commentService.count(id)))
             }
         }
     }

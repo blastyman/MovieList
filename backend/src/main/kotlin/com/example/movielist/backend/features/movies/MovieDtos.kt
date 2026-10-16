@@ -62,9 +62,10 @@ data class MovieDetailsResponse(
     val ratingCount: Int,
     val myRating: Int?,
     val myReaction: Reaction?,
+    val commentCount: Int,
 )
 
-fun MovieDetailsDto.withSocial(stats: RatingStatsDto, myReaction: Reaction?) = MovieDetailsResponse(
+fun MovieDetailsDto.withSocial(stats: RatingStatsDto, myReaction: Reaction?, commentCount: Int) = MovieDetailsResponse(
     id = id,
     title = title,
     overview = overview,
@@ -79,6 +80,7 @@ fun MovieDetailsDto.withSocial(stats: RatingStatsDto, myReaction: Reaction?) = M
     ratingCount = stats.ratingCount,
     myRating = stats.myRating,
     myReaction = myReaction,
+    commentCount = commentCount,
 )
 
 fun MovieDetailsDto.toSummary() = MovieSummaryDto(

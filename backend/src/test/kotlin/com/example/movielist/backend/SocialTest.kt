@@ -1,38 +1,24 @@
 package com.example.movielist.backend
 
 import com.example.movielist.backend.db.Reaction
-import com.example.movielist.backend.features.auth.AuthResponse
-import com.example.movielist.backend.features.auth.RegisterRequest
 import com.example.movielist.backend.features.movies.MovieDetailsResponse
 import com.example.movielist.backend.features.ratings.RatingStatsDto
 import com.example.movielist.backend.features.ratings.SetRatingRequest
 import com.example.movielist.backend.features.reactions.ReactionIdsDto
 import com.example.movielist.backend.features.reactions.ReactionPageDto
 import com.example.movielist.backend.features.reactions.SetReactionRequest
-import com.example.movielist.backend.plugins.AppJson
 import com.example.movielist.backend.plugins.ErrorResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
-import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
-import java.util.UUID
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -40,33 +26,6 @@ import kotlin.test.assertTrue
 
 /** Likes/dislikes and ratings (Phase 4). */
 class SocialTest {
-
-    /** Fake TMDB: any movie id exists (title "Movie <id>"), except [MISSING_MOVIE]. */
-    private val tmdbEngine = MockEngine { request ->
-        val id = request.url.encodedPath.substringAfterLast('/').toIntOrNull()
-        if (id == null || id == MISSING_MOVIE) {
-            respond("""{"status_code":34}""", HttpStatusCode.NotFound, jsonHeaders)
-        } else {
-            respond(
-                """{"id":$id,"title":"Movie $id","overview":"","genres":[{"id":35,"name":"Comedy"}],"poster_path":"/$id.jpg"}""",
-                HttpStatusCode.OK,
-                jsonHeaders,
-            )
-        }
-    }
-
-    private fun socialTest(block: suspend ApplicationTestBuilder.(HttpClient) -> Unit) = testApplication {
-        application { module(TestDatabase.config, TestDatabase.dataSource, tmdbEngine) }
-        block(createClient { install(ContentNegotiation) { json(AppJson) } })
-    }
-
-    private suspend fun HttpClient.newUser(): String {
-        val name = "s_" + UUID.randomUUID().toString().replace("-", "").take(12)
-        return post("/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(RegisterRequest(name, "$name@example.com", "correct-horse"))
-        }.body<AuthResponse>().token
-    }
 
     private suspend fun HttpClient.react(token: String, movieId: Int, reaction: Reaction): HttpResponse =
         put("/movies/$movieId/reaction") {
@@ -89,9 +48,9 @@ class SocialTest {
         get("/me/reactions/ids") { bearerAuth(token) }.body()
 
     @Test
-    fun `like then dislike replaces the reaction, delete clears it`() = socialTest { client ->
-        val token = client.newUser()
-        val movie = nextMovieId()
+    fun `like then dislike replaces the reaction, delete clears it`() = apiTest { client ->
+        val token = client.registerUser().token
+        val movie = uniqueMovieId()
 
         assertEquals(HttpStatusCode.OK, client.react(token, movie, Reaction.LIKE).status)
         assertEquals(ReactionIdsDto(liked = listOf(movie), disliked = emptyList()), client.ids(token))
@@ -106,10 +65,10 @@ class SocialTest {
     }
 
     @Test
-    fun `reactions are private to each user`() = socialTest { client ->
-        val alice = client.newUser()
-        val bob = client.newUser()
-        val movie = nextMovieId()
+    fun `reactions are private to each user`() = apiTest { client ->
+        val alice = client.registerUser().token
+        val bob = client.registerUser().token
+        val movie = uniqueMovieId()
 
         client.react(alice, movie, Reaction.LIKE)
 
@@ -118,8 +77,8 @@ class SocialTest {
     }
 
     @Test
-    fun `reacting to an unknown movie is a 404 and stores nothing`() = socialTest { client ->
-        val token = client.newUser()
+    fun `reacting to an unknown movie is a 404 and stores nothing`() = apiTest { client ->
+        val token = client.registerUser().token
 
         val response = client.react(token, MISSING_MOVIE, Reaction.LIKE)
 
@@ -128,9 +87,9 @@ class SocialTest {
     }
 
     @Test
-    fun `invalid reaction value is a bad request`() = socialTest { client ->
-        val token = client.newUser()
-        val response = client.put("/movies/${nextMovieId()}/reaction") {
+    fun `invalid reaction value is a bad request`() = apiTest { client ->
+        val token = client.registerUser().token
+        val response = client.put("/movies/${uniqueMovieId()}/reaction") {
             bearerAuth(token)
             contentType(ContentType.Application.Json)
             setBody("""{"reaction":"LOVE"}""")
@@ -139,10 +98,10 @@ class SocialTest {
     }
 
     @Test
-    fun `reaction list is newest first, filtered, paginated and includes movie info`() = socialTest { client ->
-        val token = client.newUser()
-        val liked = List(5) { nextMovieId() }
-        val disliked = nextMovieId()
+    fun `reaction list is newest first, filtered, paginated and includes movie info`() = apiTest { client ->
+        val token = client.registerUser().token
+        val liked = List(5) { uniqueMovieId() }
+        val disliked = uniqueMovieId()
         liked.forEach { client.react(token, it, Reaction.LIKE) }
         client.react(token, disliked, Reaction.DISLIKE)
 
@@ -169,8 +128,8 @@ class SocialTest {
     }
 
     @Test
-    fun `bad list parameters are rejected`() = socialTest { client ->
-        val token = client.newUser()
+    fun `bad list parameters are rejected`() = apiTest { client ->
+        val token = client.registerUser().token
         listOf("type=meh", "limit=0", "limit=101", "limit=x", "before=garbage", "before=2026-01-01T00:00:00Z_x")
             .forEach { query ->
                 val response = client.get("/me/reactions?$query") { bearerAuth(token) }
@@ -180,11 +139,11 @@ class SocialTest {
     }
 
     @Test
-    fun `rating is validated, upserted and averaged over users`() = socialTest { client ->
-        val alice = client.newUser()
-        val bob = client.newUser()
-        val carol = client.newUser()
-        val movie = nextMovieId()
+    fun `rating is validated, upserted and averaged over users`() = apiTest { client ->
+        val alice = client.registerUser().token
+        val bob = client.registerUser().token
+        val carol = client.registerUser().token
+        val movie = uniqueMovieId()
 
         assertEquals(RatingStatsDto(avgRating = null, ratingCount = 0, myRating = null), statsOf(client.details(alice, movie)))
 
@@ -203,18 +162,18 @@ class SocialTest {
     }
 
     @Test
-    fun `average is rounded to one decimal`() = socialTest { client ->
-        val movie = nextMovieId()
+    fun `average is rounded to one decimal`() = apiTest { client ->
+        val movie = uniqueMovieId()
         val scores = listOf(10, 9, 9) // 9.333…
-        scores.forEach { client.rate(client.newUser(), movie, it) }
+        scores.forEach { client.rate(client.registerUser().token, movie, it) }
 
-        val stats = statsOf(client.details(client.newUser(), movie))
+        val stats = statsOf(client.details(client.registerUser().token, movie))
         assertEquals(9.3, stats.avgRating)
         assertEquals(3, stats.ratingCount)
     }
 
     @Test
-    fun `social endpoints require login`() = socialTest { client ->
+    fun `social endpoints require login`() = apiTest { client ->
         assertEquals(HttpStatusCode.Unauthorized, client.put("/movies/1/reaction").status)
         assertEquals(HttpStatusCode.Unauthorized, client.put("/movies/1/rating").status)
         assertEquals(HttpStatusCode.Unauthorized, client.get("/me/reactions").status)
@@ -223,13 +182,4 @@ class SocialTest {
 
     private fun statsOf(details: MovieDetailsResponse) =
         RatingStatsDto(details.avgRating, details.ratingCount, details.myRating)
-
-    private companion object {
-        const val MISSING_MOVIE = 999_999_999
-        val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-
-        /** Unique per test run, so tests sharing the database don't share movies. */
-        private val counter = AtomicInteger((System.nanoTime() % 1_000_000).toInt() * 100)
-        fun nextMovieId() = 10_000_000 + counter.incrementAndGet()
-    }
 }

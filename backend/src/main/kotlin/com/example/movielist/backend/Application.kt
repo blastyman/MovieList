@@ -6,6 +6,8 @@ import com.example.movielist.backend.features.auth.AuthService
 import com.example.movielist.backend.features.auth.JwtService
 import com.example.movielist.backend.features.auth.PasswordHasher
 import com.example.movielist.backend.features.auth.authRoutes
+import com.example.movielist.backend.features.comments.CommentService
+import com.example.movielist.backend.features.comments.commentRoutes
 import com.example.movielist.backend.features.health.healthRoutes
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.movieRoutes
@@ -61,6 +63,7 @@ fun Application.module(
     val movieService = MovieService(tmdbClient, database)
     val reactionService = ReactionService(database, movieService)
     val ratingService = RatingService(database, movieService)
+    val commentService = CommentService(database, movieService)
 
     configureSerialization()
     configureStatusPages()
@@ -70,8 +73,9 @@ fun Application.module(
     routing {
         healthRoutes(database)
         authRoutes(authService)
-        movieRoutes(movieService, ratingService, reactionService)
+        movieRoutes(movieService, ratingService, reactionService, commentService)
         reactionRoutes(reactionService)
         ratingRoutes(ratingService)
+        commentRoutes(commentService)
     }
 }

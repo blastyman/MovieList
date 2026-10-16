@@ -107,6 +107,8 @@ object Comments : Table("comments") {
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
     val editedAt = timestampWithTimeZone("edited_at").nullable()
     val deleted = bool("deleted").default(false)
+    /** Null for a top-level comment; otherwise the top-level comment this replies to (V2). */
+    val parentId = javaUUID("parent_id").references(id, onDelete = ReferenceOption.CASCADE).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

@@ -37,11 +37,16 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | GET / PATCH | `/me` | JWT | own profile |
 | GET | `/movies/discover?page=&genre=` | JWT | popular movies, cached 10 min |
 | GET | `/movies/search?q=&page=` | JWT | cached 10 min |
-| GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down), plus `avgRating`, `ratingCount`, `myRating`, `myReaction` |
+| GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down), plus `avgRating`, `ratingCount`, `myRating`, `myReaction`, `commentCount` |
 | PUT / DELETE | `/movies/{id}/reaction` | JWT | `{reaction: LIKE\|DISLIKE}`; replaces any earlier one |
 | GET | `/me/reactions/ids` | JWT | `{liked: [ids], disliked: [ids]}` |
 | GET | `/me/reactions?type=&limit=&before=` | JWT | movies with title/poster, newest first; `nextCursor` → `before` |
 | PUT / DELETE | `/movies/{id}/rating` | JWT | `{score: 1..10}`; both return the updated stats |
+| GET | `/movies/{id}/comments?limit=&before=` | JWT | top-level comments, newest first, 20 per page; each has `author`, `isMine`, `replyCount` and `authorRating` (the author's 1–10 score for the movie) |
+| POST | `/movies/{id}/comments` | JWT | `{body}`, 1–1000 characters after trimming |
+| GET | `/comments/{commentId}/replies?limit=&after=` | JWT | a thread's replies, oldest first |
+| POST | `/comments/{commentId}/replies` | JWT | `{body}`; replying to a reply joins the same thread |
+| PATCH / DELETE | `/comments/{commentId}` | JWT | comments and replies; author only (403 otherwise); soft delete, which hides a comment's whole thread |
 
 TMDB errors become `502 TMDB_UNAVAILABLE`; TMDB's own error text is only logged.
 

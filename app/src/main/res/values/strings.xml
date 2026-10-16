@@ -65,6 +65,23 @@
     <string name="group_matches_alone">Add friends to see the movies you all like.</string>
     <string name="done">Done</string>
 
+    <!-- Chat -->
+    <string name="chats_empty">No chats yet. Message a friend from their profile, or open a group\'s chat.</string>
+    <string name="chat_you">You: %1$s</string>
+    <string name="chat_hint">Message…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_typing_one">%1$s is typing…</string>
+    <string name="chat_typing_many">Several people are typing…</string>
+    <string name="chat_failed">Not sent · tap to retry</string>
+    <string name="chat_empty">No messages yet. Say hi!</string>
+    <string name="chat_offline">Reconnecting…</string>
+    <plurals name="chat_unread">
+        <item quantity="one">%1$d unread message</item>
+        <item quantity="other">%1$d unread messages</item>
+    </plurals>
+    <string name="profile_message">Message</string>
+    <string name="group_chat">Group chat</string>
+
     <!-- Ratings -->
     <plurals name="rating_average">
         <item quantity="one">%1$s average · %2$d rating</item>

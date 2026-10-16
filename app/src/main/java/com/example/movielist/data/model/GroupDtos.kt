@@ -17,10 +17,11 @@ data class GroupDto(
     val id: String,
     val name: String,
     val ownerId: String,
+    val conversationId: String,
     val members: List<UserSummaryDto>?,
     val maxMembers: Int,
 ) {
-    fun toGroup() = Group(id, name, ownerId, members.orEmpty().map { it.toUserSummary() }, maxMembers)
+    fun toGroup() = Group(id, name, ownerId, conversationId, members.orEmpty().map { it.toUserSummary() }, maxMembers)
 }
 
 data class GroupMatchDto(val movie: MovieDto, val matchedAt: String) {

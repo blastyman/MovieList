@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -16,6 +17,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.movielist.domain.model.SessionState
 import com.example.movielist.ui.auth.AuthScreen
@@ -65,6 +69,23 @@ class MainActivity : ComponentActivity() {
                                 wait = (wait * 2).coerceAtMost(ACCOUNT_RETRY_MAX_MS)
                             }
                         }
+                        // Chat's live connection: open while the app is on screen, closed in the background.
+                        val lifecycleOwner = LocalLifecycleOwner.current
+                        DisposableEffect(lifecycleOwner) {
+                            val socket = appContainer.chatSocket
+                            val observer = LifecycleEventObserver { _, event ->
+                                when (event) {
+                                    Lifecycle.Event.ON_START -> socket.connect()
+                                    Lifecycle.Event.ON_STOP -> socket.disconnect()
+                                    else -> Unit
+                                }
+                            }
+                            lifecycleOwner.lifecycle.addObserver(observer)
+                            onDispose {
+                                lifecycleOwner.lifecycle.removeObserver(observer)
+                                socket.disconnect() // logged out
+                            }
+                        }
                         HomeScreen(
                             factory = appContainer.homeViewModelFactory(),
                             commentsFactory = appContainer.commentsViewModelFactory(),
@@ -73,6 +94,7 @@ class MainActivity : ComponentActivity() {
                             friendsFactory = appContainer.friendsViewModelFactory(),
                             matchesFactory = appContainer.matchesViewModelFactory(),
                             groupsFactory = appContainer.groupsViewModelFactory(),
+                            chatFactory = appContainer.chatViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
                             accountId = account?.id,
                             accountName = account?.let { it.displayName?.takeIf(String::isNotBlank) ?: it.username },

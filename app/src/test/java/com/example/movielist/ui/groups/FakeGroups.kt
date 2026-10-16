@@ -23,7 +23,8 @@ class FakeGroups(private val me: UserSummary, private val people: (String) -> Us
     override suspend fun create(name: String, memberIds: List<String>): Group {
         failWith?.let { throw it }
         if (memberIds.size + 1 > MAX_GROUP_MEMBERS) throw httpError(409)
-        val group = Group("g${nextId++}", name, me.id, listOf(me) + memberIds.map(people), MAX_GROUP_MEMBERS)
+        val id = "g${nextId++}"
+        val group = Group(id, name, me.id, "chat-$id", listOf(me) + memberIds.map(people), MAX_GROUP_MEMBERS)
         groups[group.id] = group
         return group
     }

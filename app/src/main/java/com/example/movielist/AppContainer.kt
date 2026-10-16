@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
+import com.example.movielist.data.remote.ChatApi
+import com.example.movielist.data.remote.ChatSocket
 import com.example.movielist.data.remote.CommentApi
 import com.example.movielist.data.remote.FriendApi
 import com.example.movielist.data.remote.GroupApi
@@ -17,6 +19,7 @@ import com.example.movielist.data.remote.ReactionApi
 import com.example.movielist.data.remote.TrailerApi
 import com.example.movielist.data.remote.UserApi
 import com.example.movielist.data.repository.BackendAuthRepository
+import com.example.movielist.data.repository.BackendChatRepository
 import com.example.movielist.data.repository.BackendCommentRepository
 import com.example.movielist.data.repository.BackendFriendRepository
 import com.example.movielist.data.repository.BackendGroupRepository
@@ -29,6 +32,8 @@ import com.example.movielist.data.repository.BackendTrailerRepository
 import com.example.movielist.data.repository.BackendUserRepository
 import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.ui.auth.AuthViewModel
+import com.example.movielist.ui.chat.ChatViewModel
+import com.example.movielist.ui.chat.ChatsViewModel
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.friends.FriendsViewModel
 import com.example.movielist.ui.groups.CreateGroupViewModel
@@ -51,14 +56,17 @@ class AppContainer(context: Context) {
 
     private val tokenStore = DataStoreTokenStore(applicationContext)
 
-    /** One HTTP client for every backend call, so all of them carry the login token. */
-    private val backend by lazy {
-        BackendClient.create(
-            baseUrl = BuildConfig.API_BASE_URL,
+    /** One HTTP client for every backend call, chat included, so all of them carry the login token. */
+    private val httpClient by lazy {
+        BackendClient.httpClient(
             tokenProvider = { tokenStore.current },
             onUnauthorized = { backendAuthRepository.onTokenRejected() },
         )
     }
+    private val backend by lazy { BackendClient.create(BuildConfig.API_BASE_URL, httpClient) }
+
+    /** The chat's live connection; MainActivity opens it while the app is visible and logged in. */
+    val chatSocket by lazy { ChatSocket(httpClient, BuildConfig.API_BASE_URL, appScope) }
 
     private val backendAuthRepository: BackendAuthRepository by lazy {
         BackendAuthRepository(backend.create(AuthApi::class.java), tokenStore, appScope)
@@ -77,6 +85,7 @@ class AppContainer(context: Context) {
     private val friendRepository by lazy { BackendFriendRepository(backend.create(FriendApi::class.java)) }
     private val matchRepository by lazy { BackendMatchRepository(backend.create(MatchApi::class.java)) }
     private val groupRepository by lazy { BackendGroupRepository(backend.create(GroupApi::class.java)) }
+    private val chatRepository by lazy { BackendChatRepository(backend.create(ChatApi::class.java)) }
     private val movieSearchRepository by lazy {
         BackendMovieSearchRepository(backend.create(MovieSearchApi::class.java))
     }
@@ -109,6 +118,21 @@ class AppContainer(context: Context) {
                         CreateGroupViewModel::class.java -> CreateGroupViewModel(friendRepository, groupRepository)
                         GroupViewModel::class.java -> GroupViewModel(groupRepository, friendRepository)
                         else -> throw IllegalArgumentException("Unknown group ViewModel $modelClass")
+                    }
+                @Suppress("UNCHECKED_CAST")
+                return viewModel as T
+            }
+        }
+
+    /** The chats list and a single chat. */
+    fun chatViewModelFactory(): ViewModelProvider.Factory =
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                val viewModel: ViewModel =
+                    when (modelClass) {
+                        ChatsViewModel::class.java -> ChatsViewModel(chatRepository, chatSocket)
+                        ChatViewModel::class.java -> ChatViewModel(chatRepository, chatSocket)
+                        else -> throw IllegalArgumentException("Unknown chat ViewModel $modelClass")
                     }
                 @Suppress("UNCHECKED_CAST")
                 return viewModel as T

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Groups
@@ -47,6 +48,7 @@ fun AppDrawer(
                             AppSection.HOME -> Icons.Default.Home
                             AppSection.SEARCH -> Icons.Default.Search
                             AppSection.FRIENDS -> Icons.Default.People
+                            AppSection.CHATS -> Icons.AutoMirrored.Filled.Chat
                             AppSection.GROUPS -> Icons.Default.Groups
                             AppSection.LISTS -> Icons.Default.Folder
                             AppSection.MATCHES -> Icons.Default.Group

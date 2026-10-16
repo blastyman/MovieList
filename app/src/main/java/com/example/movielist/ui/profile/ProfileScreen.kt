@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PersonAdd
@@ -252,6 +253,8 @@ data class ProfileFriendActions(
     val askUnfriend: () -> Unit,
     val confirmUnfriend: () -> Unit,
     val cancelUnfriend: () -> Unit,
+    /** Opens the one-to-one chat; friends only. */
+    val message: () -> Unit,
 )
 
 /** The one thing you can do next with this person, as a button (or two, to answer a request). */
@@ -282,10 +285,17 @@ private fun FriendshipButton(state: FriendshipState, busy: Boolean, actions: Pro
                 }
             }
         FriendshipState.FRIENDS ->
-            OutlinedButton(onClick = actions.askUnfriend) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = MovieRed)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.friendship_friends), color = Color.White)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = actions.message, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.profile_message), color = Color.White)
+                }
+                OutlinedButton(onClick = actions.askUnfriend) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = MovieRed)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.friendship_friends), color = Color.White)
+                }
             }
     }
 }

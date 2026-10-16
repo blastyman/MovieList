@@ -5,6 +5,7 @@ enum class AppSection(val displayName: String) {
     HOME("home"),
     SEARCH("search"),
     FRIENDS("friends"),
+    CHATS("chats"),
     GROUPS("groups"),
     LISTS("lists"),
     MATCHES("matches"),
@@ -14,8 +15,10 @@ enum class AppSection(val displayName: String) {
         get() = name.lowercase()
 
     companion object {
-        /** The section a route belongs to; a group's screens (`group/…`, `groups/new`) count as groups. */
+        /** The section a route belongs to; a group's screens count as groups, a chat as chats. */
         fun fromRoute(route: String?): AppSection? =
-            entries.firstOrNull { it.route == route } ?: GROUPS.takeIf { route?.startsWith("group") == true }
+            entries.firstOrNull { it.route == route }
+                ?: GROUPS.takeIf { route?.startsWith("group") == true }
+                ?: CHATS.takeIf { route?.startsWith("chat") == true }
     }
 }

@@ -7,6 +7,8 @@ data class Group(
     val id: String,
     val name: String,
     val ownerId: String,
+    /** The group's chat. */
+    val conversationId: String,
     val members: List<UserSummary>,
     val maxMembers: Int,
 ) {

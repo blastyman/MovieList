@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
@@ -88,6 +89,7 @@ fun GroupScreen(
     onBack: () -> Unit,
     onMovieClick: (Movie) -> Unit,
     onPersonClick: (UserSummary) -> Unit,
+    onOpenChat: (Group) -> Unit,
 ) {
     val group = state.group
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -103,6 +105,9 @@ fun GroupScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = { onOpenChat(group) }) {
+                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = stringResource(R.string.group_chat), tint = MovieRed)
+                }
                 if (group.isOwner(myId)) {
                     IconButton(onClick = actions.startRename) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.group_rename), tint = Color.Gray)

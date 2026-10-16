@@ -35,6 +35,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.movielist.R
 import com.example.movielist.domain.model.Reaction
+import com.example.movielist.ui.chat.ChatScreen
+import com.example.movielist.ui.chat.ChatViewModel
+import com.example.movielist.ui.chat.ChatsScreen
+import com.example.movielist.ui.chat.ChatsViewModel
 import com.example.movielist.ui.comments.CommentsSection
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.details.MovieDetailsScreen
@@ -70,6 +74,7 @@ fun HomeScreen(
     friendsFactory: ViewModelProvider.Factory,
     matchesFactory: ViewModelProvider.Factory,
     groupsFactory: ViewModelProvider.Factory,
+    chatFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     /** The signed-in account; null until it has loaded. */
     accountId: String?,
@@ -139,6 +144,7 @@ fun HomeScreen(
                             friendsFactory = friendsFactory,
                             matchesFactory = matchesFactory,
                             groupsFactory = groupsFactory,
+                            chatFactory = chatFactory,
                             snackbarHost = snackbarHost,
                             onLogout = onLogout,
                             openMenu = openMenu,
@@ -221,6 +227,7 @@ private fun SectionNavHost(
     friendsFactory: ViewModelProvider.Factory,
     matchesFactory: ViewModelProvider.Factory,
     groupsFactory: ViewModelProvider.Factory,
+    chatFactory: ViewModelProvider.Factory,
     snackbarHost: SnackbarHostState,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
@@ -351,13 +358,33 @@ private fun SectionNavHost(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.MATCH, movie) },
                 onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
+                onOpenChat = { group -> navController.navigate(chatRoute(group.conversationId)) },
             )
+        }
+        composable(AppSection.CHATS.route) {
+            val chats: ChatsViewModel = viewModel(factory = chatFactory)
+            LaunchedEffect(Unit) { chats.load() }
+            ChatsScreen(
+                state = chats.uiStateFlow.collectAsStateWithLifecycle().value,
+                myId = accountId,
+                onRetry = chats::load,
+                onChatClick = { conversation -> navController.navigate(chatRoute(conversation.id)) },
+                onMenuClick = openMenu,
+            )
+        }
+        composable(CHAT_ROUTE) { entry ->
+            val conversationId = entry.arguments?.getString(CHAT_ID).orEmpty()
+            ChatRoute(chatFactory, accountId, snackbarHost, navController) { chat, me -> chat.open(conversationId, me) }
+        }
+        composable(DIRECT_CHAT_ROUTE) { entry ->
+            val userId = entry.arguments?.getString(CHAT_USER_ID).orEmpty()
+            ChatRoute(chatFactory, accountId, snackbarHost, navController) { chat, me -> chat.openDirect(userId, me) }
         }
         composable(AppSection.USER.route) {
             if (accountId == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
-                ProfileRoute(accountId, profileFactory, viewModel, onMenuClick = openMenu, onBack = null, onLogout = onLogout)
+                ProfileRoute(accountId, profileFactory, viewModel, onMenuClick = openMenu, onBack = null, onLogout = onLogout, onMessage = {})
             }
         }
         composable(PROFILE_ROUTE) { entry ->
@@ -369,6 +396,7 @@ private fun SectionNavHost(
                 onMenuClick = null,
                 onBack = { navController.popBackStack() },
                 onLogout = onLogout,
+                onMessage = { id -> navController.navigate(directChatRoute(id)) },
             )
         }
     }
@@ -411,6 +439,47 @@ private const val NEW_GROUP_ROUTE = "groups/new"
 
 private fun groupRoute(groupId: String) = "group/$groupId"
 
+/** A chat by id, `chat/<conversationId>`, or the one-to-one chat with a friend, `chat/with/<userId>`. */
+private const val CHAT_ID = "conversationId"
+private const val CHAT_ROUTE = "chat/{$CHAT_ID}"
+private const val CHAT_USER_ID = "userId"
+private const val DIRECT_CHAT_ROUTE = "chat/with/{$CHAT_USER_ID}"
+
+private fun chatRoute(conversationId: String) = "chat/$conversationId"
+
+private fun directChatRoute(userId: String) = "chat/with/$userId"
+
+/** One chat screen; [open] says which chat, once the signed-in account is known. */
+@Composable
+private fun ChatRoute(
+    chatFactory: ViewModelProvider.Factory,
+    accountId: String?,
+    snackbarHost: SnackbarHostState,
+    navController: NavHostController,
+    open: (ChatViewModel, myId: String) -> Unit,
+) {
+    val chat: ChatViewModel = viewModel(factory = chatFactory)
+    LaunchedEffect(accountId) { accountId?.let { open(chat, it) } }
+    val chatState = chat.uiStateFlow.collectAsStateWithLifecycle().value
+    ShowMessage(chatState.message, snackbarHost, chat::messageShown)
+    ChatScreen(
+        state = chatState,
+        isConnected = chat.isConnected.collectAsStateWithLifecycle().value,
+        isMine = chat::isMine,
+        onBack = { navController.popBackStack() },
+        onTitleClick = { conversation ->
+            // The group's screen, or the other person's profile.
+            val route = conversation.groupId?.let(::groupRoute) ?: conversation.members.firstOrNull()?.id?.let(::profileRoute)
+            route?.let { navController.navigate(it) }
+        },
+        onRetry = chat::retry,
+        onLoadOlder = chat::loadOlder,
+        onDraftChange = chat::onDraftChange,
+        onSend = chat::send,
+        onRetrySend = chat::retrySend,
+    )
+}
+
 /** Shows [message] in the shared snackbar once, then tells the screen it was shown. */
 @Composable
 private fun ShowMessage(message: String?, snackbarHost: SnackbarHostState, onShown: () -> Unit) {
@@ -430,6 +499,7 @@ private fun ProfileRoute(
     onMenuClick: (() -> Unit)?,
     onBack: (() -> Unit)?,
     onLogout: () -> Unit,
+    onMessage: (userId: String) -> Unit,
 ) {
     val profile: ProfileViewModel = viewModel(factory = profileFactory)
     LaunchedEffect(userId) { profile.load(userId) }
@@ -453,6 +523,7 @@ private fun ProfileRoute(
                 askUnfriend = profile::askUnfriend,
                 confirmUnfriend = profile::confirmUnfriend,
                 cancelUnfriend = profile::cancelUnfriend,
+                message = { onMessage(userId) },
             ),
     )
 }

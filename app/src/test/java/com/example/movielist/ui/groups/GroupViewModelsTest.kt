@@ -4,6 +4,7 @@ import com.example.movielist.domain.model.FriendshipState
 import com.example.movielist.domain.model.GroupMatch
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.UserSummary
+import com.example.movielist.domain.repository.GroupRepository
 import com.example.movielist.ui.friends.FakeFriends
 import java.io.IOException
 import java.time.Instant
@@ -38,6 +39,36 @@ class GroupViewModelsTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun theGroupsListLoadsNewestFirstAndCanRetry() =
+        runTest(dispatcher) {
+            groups.create("First", emptyList())
+            groups.create("Second", emptyList())
+            val viewModel = GroupsViewModel(FailingOnce(groups))
+
+            viewModel.load()
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.loaded)
+            assertEquals("Can't reach the server. Check your connection.", viewModel.uiState.error)
+
+            viewModel.load()
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.loaded)
+            assertNull(viewModel.uiState.error)
+            assertEquals(listOf("Second", "First"), viewModel.uiState.groups.map { it.name })
+        }
+
+    /** Fails the first time the list is asked for, then works. */
+    private class FailingOnce(private val delegate: FakeGroups) : GroupRepository by delegate {
+        private var failed = false
+
+        override suspend fun groups() =
+            if (!failed) {
+                failed = true
+                throw IOException("Offline")
+            } else delegate.groups()
     }
 
     @Test

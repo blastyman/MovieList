@@ -123,7 +123,19 @@ class GroupTest {
     }
 
     @Test
-    fun `adding someone twice changes nothing`() = apiTest { client ->
+    fun `unfriending someone keeps them in the groups you share`() = apiTest { client ->
+        val (owner, friends) = client.ownerWithFriends(1)
+        val group = client.createGroup(owner, "Still together", friends).body<GroupDto>()
+
+        client.delete("/friends/${friends[0].id}") { bearerAuth(owner.token) }
+
+        val after = client.group(friends[0], group.id).body<GroupDto>()
+        assertEquals(listOf(owner.id, friends[0].id), after.members.map { it.id })
+        assertEquals(FriendshipState.NONE, after.members.first().friendship) // no longer friends, still members
+    }
+
+    @Test
+    fun `adding someone twice changes nothing`()= apiTest { client ->
         val (owner, friends) = client.ownerWithFriends(1)
         val group = client.createGroup(owner, "Twice", friends).body<GroupDto>()
         val again = client.addMember(owner, group.id, friends[0])

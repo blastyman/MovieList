@@ -37,6 +37,12 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 | GET / PATCH | `/me` | JWT | own profile |
 | GET | `/users/search?q=&page=` | JWT | people by username or display name (2+ characters, ignoring case), exact matches first; 20 per page with `hasMore`; each has `friendship` |
 | GET | `/users/{userId}` | JWT | public profile: name, member since, counts (likes, ratings, comments, friends), 10 newest likes, `friendship`, `isMe`; never the email |
+| GET | `/friends` | JWT | your friends, by name |
+| GET | `/friends/requests` | JWT | `{incoming, outgoing}` pending requests, newest first |
+| POST | `/friends/requests` | JWT | `{userId}`; accepts instead if they already asked you; asking again changes nothing |
+| POST | `/friends/requests/{userId}/accept` / `/decline` | JWT | answer a request they sent you |
+| DELETE | `/friends/requests/{userId}` | JWT | cancel a request you sent |
+| DELETE | `/friends/{userId}` | JWT | unfriend; all of these return `{userId, friendship}` |
 | GET | `/movies/discover?page=&genre=` | JWT | popular movies, cached 10 min |
 | GET | `/movies/search?q=&page=` | JWT | cached 10 min |
 | GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down), plus `avgRating`, `ratingCount`, `myRating`, `myReaction`, `commentCount` |

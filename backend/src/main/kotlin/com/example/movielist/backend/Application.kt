@@ -8,6 +8,8 @@ import com.example.movielist.backend.features.auth.PasswordHasher
 import com.example.movielist.backend.features.auth.authRoutes
 import com.example.movielist.backend.features.comments.CommentService
 import com.example.movielist.backend.features.comments.commentRoutes
+import com.example.movielist.backend.features.friends.FriendService
+import com.example.movielist.backend.features.friends.friendRoutes
 import com.example.movielist.backend.features.health.healthRoutes
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.movieRoutes
@@ -67,6 +69,7 @@ fun Application.module(
     val ratingService = RatingService(database, movieService)
     val commentService = CommentService(database, movieService)
     val userService = UserService(database)
+    val friendService = FriendService(database)
 
     configureSerialization()
     configureStatusPages()
@@ -81,5 +84,6 @@ fun Application.module(
         ratingRoutes(ratingService)
         commentRoutes(commentService)
         userRoutes(userService)
+        friendRoutes(friendService)
     }
 }

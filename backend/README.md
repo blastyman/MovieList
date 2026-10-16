@@ -19,13 +19,27 @@ The tests start a real embedded PostgreSQL 16 and run the Flyway migrations on i
 1. Start Postgres. Either:
    - **Docker Desktop:** `docker compose up -d` in this folder, or
    - a locally installed PostgreSQL 16 with a `movielist` database/user/password.
-2. Optional: `cp .env.example .env` and fill in `TMDB_TOKEN` (the values are read from real
-   environment variables; IntelliJ's run configuration or the EnvFile plugin can load `.env`).
+2. `cp .env.example .env` and fill in `TMDB_TOKEN` — without it `/movies` answers
+   `502 TMDB_UNAVAILABLE`. `./gradlew run` loads `.env` for you; real environment
+   variables take precedence.
 3. Start the server:
    ```bash
    ./gradlew run
    ```
 4. Check it: <http://localhost:8080/health> → `{"status":"ok","database":"up"}`
+
+## Endpoints so far
+
+| Method | Path | Auth | |
+|---|---|---|---|
+| GET | `/health` | – | database check |
+| POST | `/auth/register`, `/auth/login` | – | returns `{token, user}` |
+| GET / PATCH | `/me` | JWT | own profile |
+| GET | `/movies/discover?page=&genre=` | JWT | popular movies, cached 10 min |
+| GET | `/movies/search?q=&page=` | JWT | cached 10 min |
+| GET | `/movies/{id}` | JWT | details, cached 24 h in `movies_cache` (stale copy served if TMDB is down) |
+
+TMDB errors become `502 TMDB_UNAVAILABLE`; TMDB's own error text is only logged.
 
 Migrations in `src/main/resources/db/migration` run automatically on startup.
 
@@ -42,8 +56,10 @@ src/main/kotlin/com/example/movielist/backend/
 ├── Application.kt      # main() + module(): wires plugins and routes
 ├── config/             # AppConfig (environment variables)
 ├── db/                 # Hikari + Flyway setup, Exposed table mappings
-├── plugins/            # JSON, error responses, request logging
-└── features/           # one package per feature (health now; auth, friends, … next)
+├── plugins/            # JSON, error responses, request logging, JWT auth
+├── tmdb/               # TmdbClient: the only code that talks to TMDB
+├── util/               # TtlCache
+└── features/           # one package per feature: health, auth, users, movies (friends, … next)
 ```
 
 ## Environment variables
@@ -55,4 +71,4 @@ src/main/kotlin/com/example/movielist/backend/
 | `DB_URL` | `jdbc:postgresql://localhost:5432/movielist` | |
 | `DB_USER` / `DB_PASSWORD` | `movielist` / `movielist` | |
 | `JWT_SECRET` | dev placeholder | `openssl rand -base64 48` in production |
-| `TMDB_TOKEN` | empty | TMDB v4 read access token |
+| `TMDB_TOKEN` | empty | TMDB "API Read Access Token"; a `Bearer ` prefix is accepted |

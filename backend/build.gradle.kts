@@ -19,6 +19,21 @@ ktor {
     }
 }
 
+// `./gradlew run` loads backend/.env (gitignored) so local secrets like TMDB_TOKEN don't
+// have to be set by hand. Real environment variables still win.
+tasks.named<JavaExec>("run") {
+    val envFile = file(".env")
+    if (envFile.exists()) {
+        envFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && "=" in it }
+            .forEach { line ->
+                val (key, value) = line.split("=", limit = 2).map { it.trim() }
+                if (System.getenv(key) == null) environment(key, value)
+            }
+    }
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
@@ -45,10 +60,16 @@ dependencies {
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.bcrypt)
 
+    // TMDB client
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+
     // Database
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.java.time)
+    implementation(libs.exposed.json)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
     implementation(libs.hikari)
@@ -59,7 +80,7 @@ dependencies {
 
     // Testing
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.embedded.postgres)
     testImplementation(platform(libs.embedded.postgres.binaries.bom))

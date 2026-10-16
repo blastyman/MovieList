@@ -21,11 +21,15 @@ ktor-server-auth = { group = "io.ktor", name = "ktor-server-auth" }
 ktor-server-auth-jwt = { group = "io.ktor", name = "ktor-server-auth-jwt" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
 ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host" }
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation" }
+ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock" }
 
 exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }
 exposed-jdbc = { group = "org.jetbrains.exposed", name = "exposed-jdbc", version.ref = "exposed" }
 exposed-java-time = { group = "org.jetbrains.exposed", name = "exposed-java-time", version.ref = "exposed" }
+exposed-json = { group = "org.jetbrains.exposed", name = "exposed-json", version.ref = "exposed" }
 
 flyway-core = { group = "org.flywaydb", name = "flyway-core", version.ref = "flyway" }
 flyway-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }

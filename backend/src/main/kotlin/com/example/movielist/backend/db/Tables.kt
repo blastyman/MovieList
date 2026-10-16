@@ -1,17 +1,18 @@
 package com.example.movielist.backend.db
 
+import com.example.movielist.backend.features.movies.MovieDetailsDto
+import com.example.movielist.backend.plugins.AppJson
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
+import org.jetbrains.exposed.v1.json.jsonb
 
 /*
  * Exposed mappings for the schema in resources/db/migration.
  * Flyway owns the schema; these objects only describe it for type-safe queries,
  * so any change here must come with a new migration (V2__…, V3__…).
- *
- * movies_cache has no mapping yet; it is added with the TMDB proxy in Phase 3.
  */
 
 object Users : Table("users") {
@@ -108,6 +109,15 @@ object Comments : Table("comments") {
     val deleted = bool("deleted").default(false)
 
     override val primaryKey = PrimaryKey(id)
+}
+
+/** TMDB movie details, refreshed after a TTL (see MovieService). */
+object MoviesCache : Table("movies_cache") {
+    val movieId = integer("movie_id")
+    val json = jsonb<MovieDetailsDto>("json", AppJson)
+    val fetchedAt = timestampWithTimeZone("fetched_at").defaultExpression(CurrentTimestampWithTimeZone)
+
+    override val primaryKey = PrimaryKey(movieId)
 }
 
 enum class FriendshipStatus { PENDING, ACCEPTED }

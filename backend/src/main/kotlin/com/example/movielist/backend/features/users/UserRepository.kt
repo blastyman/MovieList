@@ -8,6 +8,7 @@ import org.jetbrains.exposed.v1.core.lowerCase
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.statements.UpdateStatement
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -69,9 +70,14 @@ class UserRepository(private val db: Database) {
         Users.selectAll().where { Users.id eq id }.singleOrNull()?.toUserRecord()
     }
 
-    /** Removes the account; the database removes everything that belongs to it with it. */
-    suspend fun delete(id: UUID) {
-        db.query { Users.deleteWhere { Users.id eq id } }
+    /**
+     * Removes the account; the database removes everything that belongs to it with it. [first]
+     * runs in the same transaction, so either all of it happens or none.
+     */
+    suspend fun <T> delete(id: UUID, first: JdbcTransaction.() -> T): T = db.query {
+        val result = first()
+        Users.deleteWhere { Users.id eq id }
+        result
     }
 }
 

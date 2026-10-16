@@ -133,14 +133,14 @@ class AuthService(
     }
 
     /**
-     * Deletes the account and everything in it. Groups they own are handed to the next member
-     * first, the same as leaving, so their friends don't lose the group.
+     * Deletes the account and everything in it, in one transaction. Groups they own are handed
+     * to the next member first, the same as leaving, so their friends don't lose the group.
+     * Pictures are removed only once that has committed.
      */
     suspend fun deleteAccount(userId: UUID, request: DeleteAccountRequest) {
         val user = requirePassword(userId, request.password)
-        groups.leaveAll(userId)
-        users.delete(userId)
-        avatars.delete(user.avatarUrl)
+        val deletedGroupPhotos = users.delete(userId) { groups.leaveAllIn(this, userId) }
+        (deletedGroupPhotos + user.avatarUrl).forEach(avatars::delete)
     }
 
     /** The account, if [password] is right; a wrong one is a 403 so the app doesn't log out. */

@@ -70,7 +70,8 @@ class GroupService(
         FriendGroups.selectAll()
             .where { FriendGroups.id inList ids }
             .orderBy(FriendGroups.createdAt to SortOrder.DESC)
-            .map { toDto(me, it) }
+            .toList()
+            .let { toDtos(me, it) }
     }
 
     suspend fun create(me: UUID, request: CreateGroupRequest): GroupDto {
@@ -118,30 +119,37 @@ class GroupService(
         }
     }
 
-    /** A new photo for the group's icon, in place of the old one. Owner only. */
+    /**
+     * A new photo for the group's icon, in place of the old one. Owner only. The file is written
+     * first; the ownership check and the switch happen together under the group's row lock, so
+     * a group disbanded or handed over meanwhile is refused (and the new file removed again).
+     */
     suspend fun setAvatar(me: UUID, groupId: UUID, bytes: ByteArray): GroupDto {
-        val old = db.query {
-            requireOwner(me, groupId)
-            avatarOf(groupId)
-        }
+        db.query { requireOwner(me, groupId) } // fail fast before storing anything
         val path = avatars.save(groupId, bytes)
-        val group = db.query {
-            FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.avatarUrl] = path }
-            group(me, groupId)
+        val (old, group) = try {
+            db.query { replaceAvatar(me, groupId, path) }
+        } catch (e: Exception) {
+            avatars.delete(path)
+            throw e
         }
         avatars.delete(old)
         return group
     }
 
     suspend fun removeAvatar(me: UUID, groupId: UUID): GroupDto {
-        val (old, group) = db.query {
-            requireOwner(me, groupId)
-            val old = avatarOf(groupId)
-            FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.avatarUrl] = null }
-            old to group(me, groupId)
-        }
+        val (old, group) = db.query { replaceAvatar(me, groupId, null) }
         avatars.delete(old)
         return group
+    }
+
+    /** Sets the photo to [path] (null removes it) and returns the old one with the group. */
+    private fun JdbcTransaction.replaceAvatar(me: UUID, groupId: UUID, path: String?): Pair<String?, GroupDto> {
+        lockGroup(groupId)
+        requireOwner(me, groupId)
+        val old = avatarOf(groupId)
+        FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.avatarUrl] = path }
+        return old to group(me, groupId)
     }
 
     /** Any member may add one of their friends; adding someone who's already in changes nothing. */
@@ -162,44 +170,55 @@ class GroupService(
      * deleted. Returns the group as the caller now sees it, or null if they're no longer in it.
      */
     suspend fun removeMember(me: UUID, groupId: UUID, userId: UUID): GroupDto? {
-        // A group deleted because its last member left takes its photo with it, once committed.
-        var deletedAvatar: String? = null
-        val result = db.query {
-            val ownerId = lockGroup(groupId)
-            requireMember(me, groupId)
-            if (userId != me && ownerId != me) throw ForbiddenException("Only the group owner can remove members")
-            if (!isMember(userId, groupId)) throw NotFoundException("They are not in this group")
-
-            val conversationId = conversationOf(groupId)
-            GroupMembers.deleteWhere { (GroupMembers.groupId eq groupId) and (GroupMembers.userId eq userId) }
-            ConversationMembers.deleteWhere {
-                (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId eq userId)
-            }
-            if (userId == ownerId) {
-                val next = GroupMembers.selectAll()
-                    .where { GroupMembers.groupId eq groupId }
-                    .orderBy(GroupMembers.joinedAt to SortOrder.ASC)
-                    .limit(1)
-                    .singleOrNull()
-                if (next == null) {
-                    deletedAvatar = avatarOf(groupId)
-                    FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to its conversation
-                } else {
-                    FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.ownerId] = next[GroupMembers.userId] }
-                }
-            }
-            if (userId == me) null else group(me, groupId)
+        val (result, deletedAvatar) = db.query {
+            val deletedAvatar = removeMemberRows(me, groupId, userId)
+            (if (userId == me) null else group(me, groupId)) to deletedAvatar
         }
+        // A group deleted because its last member left takes its photo with it, once committed.
         avatars.delete(deletedAvatar)
         return result
     }
 
-    /** Leaves every group, handing over the ones [me] owns; used when an account is deleted. */
-    suspend fun leaveAll(me: UUID) {
-        val ids = db.query {
-            GroupMembers.select(GroupMembers.groupId).where { GroupMembers.userId eq me }.map { it[GroupMembers.groupId] }
+    /**
+     * Leaves every group inside [transaction], handing over the ones [me] owns; for deleting an
+     * account in one go. Returns the photos of groups that ended up deleted, to remove once the
+     * transaction has committed.
+     */
+    fun leaveAllIn(transaction: JdbcTransaction, me: UUID): List<String> =
+        with(transaction) {
+            GroupMembers.select(GroupMembers.groupId)
+                .where { GroupMembers.userId eq me }
+                .map { it[GroupMembers.groupId] }
+                .mapNotNull { removeMemberRows(me, it, me) }
         }
-        ids.forEach { removeMember(me, it, me) }
+
+    /** Removes [userId] from the group; returns the group's photo if that deleted the group. */
+    private fun JdbcTransaction.removeMemberRows(me: UUID, groupId: UUID, userId: UUID): String? {
+        val ownerId = lockGroup(groupId)
+        requireMember(me, groupId)
+        if (userId != me && ownerId != me) throw ForbiddenException("Only the group owner can remove members")
+        if (!isMember(userId, groupId)) throw NotFoundException("They are not in this group")
+
+        val conversationId = conversationOf(groupId)
+        GroupMembers.deleteWhere { (GroupMembers.groupId eq groupId) and (GroupMembers.userId eq userId) }
+        ConversationMembers.deleteWhere {
+            (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId eq userId)
+        }
+        if (userId == ownerId) {
+            val next = GroupMembers.selectAll()
+                .where { GroupMembers.groupId eq groupId }
+                .orderBy(GroupMembers.joinedAt to SortOrder.ASC)
+                .limit(1)
+                .singleOrNull()
+            if (next == null) {
+                val photo = avatarOf(groupId)
+                FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to its conversation
+                return photo
+            } else {
+                FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.ownerId] = next[GroupMembers.userId] }
+            }
+        }
+        return null
     }
 
     /** The owner deletes the group for everyone, its chat included. */
@@ -240,13 +259,19 @@ class GroupService(
             .where { GroupMembers.userId eq me }
             .map { it[GroupMembers.groupId] }
         if (myGroups.isEmpty()) return@query emptyList()
-        val likers = MovieReactions.select(MovieReactions.userId)
-            .where { (MovieReactions.movieId eq movieId) and (MovieReactions.reaction eq Reaction.LIKE.name) }
-            .map { it[MovieReactions.userId] }
-            .toSet()
-        val completed = GroupMembers.selectAll()
+        val membersByGroup = GroupMembers.selectAll()
             .where { GroupMembers.groupId inList myGroups }
             .groupBy({ it[GroupMembers.groupId] }, { it[GroupMembers.userId] })
+        // Only the likes of people in these groups matter, not everyone who ever liked the movie.
+        val likers = MovieReactions.select(MovieReactions.userId)
+            .where {
+                (MovieReactions.movieId eq movieId) and
+                    (MovieReactions.reaction eq Reaction.LIKE.name) and
+                    (MovieReactions.userId inList membersByGroup.values.flatten().distinct())
+            }
+            .map { it[MovieReactions.userId] }
+            .toSet()
+        val completed = membersByGroup
             .filterValues { it.size >= 2 && likers.containsAll(it) }
             .keys
         if (completed.isEmpty()) return@query emptyList()
@@ -263,21 +288,35 @@ class GroupService(
             ?: throw NotFoundException("No such group")
 
     private fun JdbcTransaction.group(me: UUID, groupId: UUID): GroupDto =
-        toDto(me, FriendGroups.selectAll().where { FriendGroups.id eq groupId }.single())
+        toDtos(me, listOf(FriendGroups.selectAll().where { FriendGroups.id eq groupId }.single())).single()
 
     private fun JdbcTransaction.avatarOf(groupId: UUID): String? =
         FriendGroups.select(FriendGroups.avatarUrl).where { FriendGroups.id eq groupId }.single()[FriendGroups.avatarUrl]
 
-    private fun JdbcTransaction.toDto(me: UUID, group: ResultRow): GroupDto {
-        val groupId = group[FriendGroups.id]
-        val ownerId = group[FriendGroups.ownerId]
-        val rows = GroupMembers.join(Users, JoinType.INNER, GroupMembers.userId, Users.id)
+    /**
+     * [groups] as DTOs, members included. Three queries in all however many groups there are:
+     * every member, the caller's friendship with each, and every group's chat.
+     */
+    private fun JdbcTransaction.toDtos(me: UUID, groups: List<ResultRow>): List<GroupDto> {
+        if (groups.isEmpty()) return emptyList()
+        val groupIds = groups.map { it[FriendGroups.id] }
+        val memberRows = GroupMembers.join(Users, JoinType.INNER, GroupMembers.userId, Users.id)
             .selectAll()
-            .where { GroupMembers.groupId eq groupId }
+            .where { GroupMembers.groupId inList groupIds }
             .orderBy(GroupMembers.joinedAt to SortOrder.ASC)
             .toList()
-        val states = friendshipStates(me, rows.map { it[Users.id] })
-        val members = rows
+        val states = friendshipStates(me, memberRows.map { it[Users.id] }.distinct())
+        val membersByGroup = memberRows.groupBy { it[GroupMembers.groupId] }
+        val chats = Conversations.select(Conversations.groupId, Conversations.id)
+            .where { Conversations.groupId inList groupIds }
+            .associate { it[Conversations.groupId] to it[Conversations.id] }
+        return groups.map { toDto(it, membersByGroup[it[FriendGroups.id]].orEmpty(), states, chats.getValue(it[FriendGroups.id])) }
+    }
+
+    private fun toDto(group: ResultRow, memberRows: List<ResultRow>, states: Map<UUID, FriendshipState>, conversationId: UUID): GroupDto {
+        val groupId = group[FriendGroups.id]
+        val ownerId = group[FriendGroups.ownerId]
+        val members = memberRows
             .sortedByDescending { it[Users.id] == ownerId } // stable, so the rest stay in join order
             .map { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) }
         return GroupDto(
@@ -287,7 +326,7 @@ class GroupService(
             avatarEmoji = group[FriendGroups.avatarEmoji],
             avatarColor = group[FriendGroups.avatarColor],
             ownerId = ownerId.toString(),
-            conversationId = conversationOf(groupId).toString(),
+            conversationId = conversationId.toString(),
             members = members,
             maxMembers = MAX_MEMBERS,
             createdAt = group[FriendGroups.createdAt].toInstant().toString(),

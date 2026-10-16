@@ -15,11 +15,14 @@ import com.example.movielist.backend.features.users.toUserSummary
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.java.UUIDColumnType
 import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.select
@@ -85,11 +88,55 @@ class MatchService(private val db: Database) {
         }
     }
 
-    /** Who else likes [movieId]; what the "It's a match!" popup shows after a like. */
+    /**
+     * Who else likes [movieId]; what the "It's a match!" popup shows after a like. Runs on every
+     * like, so the database ranks everyone and only the best [MAX_PEOPLE] become profiles: a
+     * movie with thousands of likes costs one query, not thousands of rows here. Same order and
+     * visibility as [matches].
+     */
     suspend fun peopleWhoLike(me: UUID, movieId: Int): MatchPeopleDto = db.query {
-        val ids = likersByMovie(me, listOf(movieId))[movieId].orEmpty()
-        val ranked = people(me, ids).values.sortedWith(BEST_MATCH_FIRST)
-        MatchPeopleDto(ranked.take(MAX_PEOPLE), ranked.size)
+        val uuid = UUIDColumnType()
+        var total = 0
+        val ranked = exec(
+            """
+            WITH likers AS (
+                SELECT u.id,
+                       lower(coalesce(u.display_name, u.username)) AS sort_name,
+                       u.show_in_matches,
+                       EXISTS (
+                           SELECT 1 FROM friendships f
+                           WHERE f.status = 'ACCEPTED'
+                             AND ((f.requester_id = ? AND f.addressee_id = u.id) OR (f.addressee_id = ? AND f.requester_id = u.id))
+                       ) AS is_friend
+                FROM movie_reactions r
+                JOIN users u ON u.id = r.user_id
+                WHERE r.movie_id = ? AND r.reaction = 'LIKE' AND r.user_id <> ?
+            )
+            SELECT l.id,
+                   (SELECT count(*)
+                      FROM movie_reactions mine
+                      JOIN movie_reactions theirs ON theirs.movie_id = mine.movie_id
+                     WHERE mine.user_id = ? AND mine.reaction = 'LIKE'
+                       AND theirs.user_id = l.id AND theirs.reaction = 'LIKE') AS shared,
+                   count(*) OVER () AS total
+            FROM likers l
+            WHERE l.show_in_matches OR l.is_friend
+            ORDER BY shared DESC, l.is_friend DESC, l.sort_name COLLATE "C"
+            LIMIT ?
+            """.trimIndent(),
+            listOf(uuid to me, uuid to me, IntegerColumnType() to movieId, uuid to me, uuid to me, IntegerColumnType() to MAX_PEOPLE),
+            // It starts with WITH, which Exposed wouldn't recognise as a query by itself.
+            explicitStatementType = StatementType.SELECT,
+        ) { rs ->
+            buildList {
+                while (rs.next()) {
+                    total = rs.getInt("total")
+                    add(rs.getObject("id", UUID::class.java) to rs.getInt("shared"))
+                }
+            }
+        }.orEmpty()
+        val profiles = profiles(me, ranked.map { it.first })
+        MatchPeopleDto(ranked.map { (id, shared) -> MatchPersonDto(profiles.getValue(id), shared) }, total)
     }
 
     /**
@@ -113,13 +160,15 @@ class MatchService(private val db: Database) {
     private fun JdbcTransaction.people(me: UUID, userIds: List<UUID>): Map<UUID, MatchPersonDto> {
         if (userIds.isEmpty()) return emptyMap()
         val shared = sharedLikes(me, userIds)
+        return profiles(me, userIds).mapValues { (id, user) -> MatchPersonDto(user, shared[id] ?: 0) }
+    }
+
+    /** [userIds] as they appear in lists, with your friendship to each. */
+    private fun JdbcTransaction.profiles(me: UUID, userIds: List<UUID>): Map<UUID, UserSummaryDto> {
+        if (userIds.isEmpty()) return emptyMap()
         val states = friendshipStates(me, userIds)
         return Users.selectAll().where { Users.id inList userIds }.associate {
-            val id = it[Users.id]
-            id to MatchPersonDto(
-                user = it.toUserSummary(states[id] ?: FriendshipState.NONE),
-                sharedLikes = shared[id] ?: 0,
-            )
+            it[Users.id] to it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE)
         }
     }
 

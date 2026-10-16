@@ -16,14 +16,13 @@ import com.example.movielist.backend.plugins.ApiException
 import com.example.movielist.backend.plugins.NotFoundException
 import com.example.movielist.backend.plugins.ValidationException
 import io.ktor.http.HttpStatusCode
-import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.java.UUIDColumnType
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.core.or
@@ -70,12 +69,12 @@ class ChatService(
             .selectAll()
             .where { Conversations.id inList ids }
             .toList()
-        rows.map { toDto(me, it) }.sortedByDescending { it.updatedAt }
+        toDtos(me, rows).sortedByDescending { Instant.parse(it.updatedAt) } // by time, not by text
     }
 
     suspend fun conversation(me: UUID, conversationId: UUID): ConversationDto = db.query {
         requireMember(me, conversationId)
-        toDto(me, conversationRow(conversationId))
+        toDtos(me, listOf(conversationRow(conversationId))).single()
     }
 
     /** The one-to-one conversation with a friend, started if it doesn't exist yet. */
@@ -179,7 +178,7 @@ class ChatService(
             }
             id
         }
-        return toDto(me, conversationRow(conversationId))
+        return toDtos(me, listOf(conversationRow(conversationId))).single()
     }
 
     /** Either of you can turn one-to-one messages off ("who can message me": nobody). */
@@ -191,48 +190,86 @@ class ChatService(
         if (closed[other] == true) throw MessagesOffException("They aren't taking messages")
     }
 
-    private fun JdbcTransaction.toDto(me: UUID, row: ResultRow): ConversationDto {
-        val conversationId = row[Conversations.id]
+    /**
+     * [rows] as DTOs. Four queries however many conversations there are: everyone else in them
+     * (with your friendship to each), each one's last message, and your unread counts.
+     */
+    private fun JdbcTransaction.toDtos(me: UUID, rows: List<ResultRow>): List<ConversationDto> {
+        if (rows.isEmpty()) return emptyList()
+        val ids = rows.map { it[Conversations.id] }
+
         val others = ConversationMembers.join(Users, JoinType.INNER, ConversationMembers.userId, Users.id)
             .selectAll()
-            .where { (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId neq me) }
+            .where { (ConversationMembers.conversationId inList ids) and (ConversationMembers.userId neq me) }
             .toList()
-        val states = friendshipStates(me, others.map { it[Users.id] })
-        val members = others.map { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) }.sortedBy { (it.displayName ?: it.username).lowercase() }
+        val states = friendshipStates(me, others.map { it[Users.id] }.distinct())
+        val membersById = others
+            .groupBy({ it[ConversationMembers.conversationId] }, { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) })
+            .mapValues { (_, members) -> members.sortedBy { (it.displayName ?: it.username).lowercase() } }
 
-        val last = Messages.selectAll()
-            .where { Messages.conversationId eq conversationId }
-            .orderBy(Messages.createdAt to SortOrder.DESC, Messages.id to SortOrder.DESC)
-            .limit(1)
-            .singleOrNull()
-            ?.let(::toMessage)
-
-        val lastRead = ConversationMembers.select(ConversationMembers.lastReadAt)
-            .where { (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId eq me) }
-            .single()[ConversationMembers.lastReadAt]
-        val unread = Count(Messages.id)
-        val unreadCount = Messages.select(unread)
-            .where {
-                val fromOthers = (Messages.conversationId eq conversationId) and (Messages.senderId neq me)
-                if (lastRead == null) fromOthers else fromOthers and (Messages.createdAt greater lastRead)
+        val placeholders = ids.joinToString(",") { "?" }
+        val idArgs = ids.map { UUIDColumnType() to it }
+        // The newest message of each conversation, in one go.
+        val lastById = exec(
+            """
+            SELECT DISTINCT ON (conversation_id) id, conversation_id, sender_id, body, created_at
+            FROM messages
+            WHERE conversation_id IN ($placeholders)
+            ORDER BY conversation_id, created_at DESC, id DESC
+            """.trimIndent(),
+            idArgs,
+        ) { rs ->
+            buildMap {
+                while (rs.next()) {
+                    val conversationId = rs.getObject("conversation_id", UUID::class.java)
+                    put(
+                        conversationId,
+                        MessageDto(
+                            id = rs.getObject("id", UUID::class.java).toString(),
+                            conversationId = conversationId.toString(),
+                            senderId = rs.getObject("sender_id", UUID::class.java).toString(),
+                            body = rs.getString("body"),
+                            createdAt = rs.getObject("created_at", OffsetDateTime::class.java).toInstant().toString(),
+                        ),
+                    )
+                }
             }
-            .single()[unread].toInt()
+        }.orEmpty()
+        // Messages from others after you last read, per conversation.
+        val unreadById = exec(
+            """
+            SELECT m.conversation_id, count(*) AS unread
+            FROM messages m
+            JOIN conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = ?
+            WHERE m.conversation_id IN ($placeholders)
+              AND m.sender_id <> ?
+              AND (cm.last_read_at IS NULL OR m.created_at > cm.last_read_at)
+            GROUP BY m.conversation_id
+            """.trimIndent(),
+            listOf(UUIDColumnType() to me) + idArgs + listOf(UUIDColumnType() to me),
+        ) { rs ->
+            buildMap { while (rs.next()) put(rs.getObject("conversation_id", UUID::class.java), rs.getInt("unread")) }
+        }.orEmpty()
 
-        val isGroup = row[Conversations.type] == GROUP
-        val title = if (isGroup) row[FriendGroups.name] else members.firstOrNull()?.let { it.displayName ?: it.username }.orEmpty()
-        return ConversationDto(
-            id = conversationId.toString(),
-            type = row[Conversations.type],
-            title = title,
-            groupId = row[Conversations.groupId]?.toString(),
-            avatarUrl = if (isGroup) row[FriendGroups.avatarUrl] else null,
-            avatarEmoji = if (isGroup) row[FriendGroups.avatarEmoji] else null,
-            avatarColor = if (isGroup) row[FriendGroups.avatarColor] else null,
-            members = members,
-            lastMessage = last,
-            unreadCount = unreadCount,
-            updatedAt = last?.createdAt ?: row[Conversations.createdAt].toInstant().toString(),
-        )
+        return rows.map { row ->
+            val conversationId = row[Conversations.id]
+            val members = membersById[conversationId].orEmpty()
+            val last = lastById[conversationId]
+            val isGroup = row[Conversations.type] == GROUP
+            ConversationDto(
+                id = conversationId.toString(),
+                type = row[Conversations.type],
+                title = if (isGroup) row[FriendGroups.name] else members.firstOrNull()?.let { it.displayName ?: it.username }.orEmpty(),
+                groupId = row[Conversations.groupId]?.toString(),
+                avatarUrl = if (isGroup) row[FriendGroups.avatarUrl] else null,
+                avatarEmoji = if (isGroup) row[FriendGroups.avatarEmoji] else null,
+                avatarColor = if (isGroup) row[FriendGroups.avatarColor] else null,
+                members = members,
+                lastMessage = last,
+                unreadCount = unreadById[conversationId] ?: 0,
+                updatedAt = last?.createdAt ?: row[Conversations.createdAt].toInstant().toString(),
+            )
+        }
     }
 
     private fun JdbcTransaction.conversationRow(conversationId: UUID): ResultRow =

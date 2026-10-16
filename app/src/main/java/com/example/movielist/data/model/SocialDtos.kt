@@ -13,6 +13,7 @@ data class ReactionDto(
     val reaction: Reaction,
     val matchedPeople: List<MatchPersonDto>?,
     val matchedCount: Int,
+    val completedGroups: List<GroupBriefDto>?,
 )
 
 data class ReactionIdsDto(val liked: List<Int>?, val disliked: List<Int>?)

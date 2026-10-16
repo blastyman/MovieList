@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -46,6 +47,7 @@ fun AppDrawer(
                             AppSection.HOME -> Icons.Default.Home
                             AppSection.SEARCH -> Icons.Default.Search
                             AppSection.FRIENDS -> Icons.Default.People
+                            AppSection.GROUPS -> Icons.Default.Groups
                             AppSection.LISTS -> Icons.Default.Folder
                             AppSection.MATCHES -> Icons.Default.Group
                             AppSection.USER -> Icons.Default.Person

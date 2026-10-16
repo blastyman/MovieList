@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                             profileFactory = appContainer.profileViewModelFactory(),
                             friendsFactory = appContainer.friendsViewModelFactory(),
                             matchesFactory = appContainer.matchesViewModelFactory(),
+                            groupsFactory = appContainer.groupsViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
                             accountId = account?.id,
                             accountName = account?.let { it.displayName?.takeIf(String::isNotBlank) ?: it.username },

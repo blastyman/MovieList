@@ -47,6 +47,13 @@ import com.example.movielist.ui.navigation.AppSection
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.ui.friends.FriendsScreen
 import com.example.movielist.ui.friends.FriendsViewModel
+import com.example.movielist.ui.groups.CreateGroupScreen
+import com.example.movielist.ui.groups.CreateGroupViewModel
+import com.example.movielist.ui.groups.GroupActions
+import com.example.movielist.ui.groups.GroupScreen
+import com.example.movielist.ui.groups.GroupViewModel
+import com.example.movielist.ui.groups.GroupsScreen
+import com.example.movielist.ui.groups.GroupsViewModel
 import com.example.movielist.ui.profile.ProfileFriendActions
 import com.example.movielist.ui.profile.ProfileScreen
 import com.example.movielist.ui.profile.ProfileViewModel
@@ -62,6 +69,7 @@ fun HomeScreen(
     profileFactory: ViewModelProvider.Factory,
     friendsFactory: ViewModelProvider.Factory,
     matchesFactory: ViewModelProvider.Factory,
+    groupsFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     /** The signed-in account; null until it has loaded. */
     accountId: String?,
@@ -130,6 +138,8 @@ fun HomeScreen(
                             profileFactory = profileFactory,
                             friendsFactory = friendsFactory,
                             matchesFactory = matchesFactory,
+                            groupsFactory = groupsFactory,
+                            snackbarHost = snackbarHost,
                             onLogout = onLogout,
                             openMenu = openMenu,
                         )
@@ -178,6 +188,11 @@ fun HomeScreen(
                             viewModel.closeDetails()
                             navController.navigate(profileRoute(user.id))
                         },
+                        onOpenGroup = { group ->
+                            viewModel.dismissMatch()
+                            viewModel.closeDetails()
+                            navController.navigate(groupRoute(group.id))
+                        },
                         onSeeMatches = {
                             viewModel.dismissMatch()
                             viewModel.closeDetails()
@@ -205,6 +220,8 @@ private fun SectionNavHost(
     profileFactory: ViewModelProvider.Factory,
     friendsFactory: ViewModelProvider.Factory,
     matchesFactory: ViewModelProvider.Factory,
+    groupsFactory: ViewModelProvider.Factory,
+    snackbarHost: SnackbarHostState,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
 ) {
@@ -273,6 +290,68 @@ private fun SectionNavHost(
                 onMenuClick = openMenu,
             )
         }
+        composable(AppSection.GROUPS.route) {
+            val groups: GroupsViewModel = viewModel(factory = groupsFactory)
+            LaunchedEffect(Unit) { groups.load() }
+            GroupsScreen(
+                state = groups.uiStateFlow.collectAsStateWithLifecycle().value,
+                onRetry = groups::load,
+                onGroupClick = { group -> navController.navigate(groupRoute(group.id)) },
+                onNewGroup = { navController.navigate(NEW_GROUP_ROUTE) },
+                onMenuClick = openMenu,
+            )
+        }
+        composable(NEW_GROUP_ROUTE) {
+            val create: CreateGroupViewModel = viewModel(factory = groupsFactory)
+            val createState = create.uiStateFlow.collectAsStateWithLifecycle().value
+            ShowMessage(createState.message, snackbarHost, create::messageShown)
+            LaunchedEffect(createState.createdGroupId) {
+                // Open the new group in place of this screen, so back returns to the list.
+                createState.createdGroupId?.let { id ->
+                    navController.navigate(groupRoute(id)) { popUpTo(NEW_GROUP_ROUTE) { inclusive = true } }
+                }
+            }
+            CreateGroupScreen(
+                state = createState,
+                onBack = { navController.popBackStack() },
+                onNameChange = create::onNameChange,
+                onToggle = create::toggle,
+                onRetryFriends = create::loadFriends,
+                onCreate = create::create,
+            )
+        }
+        composable(GROUP_ROUTE) { entry ->
+            val groupId = entry.arguments?.getString(GROUP_ID).orEmpty()
+            val group: GroupViewModel = viewModel(factory = groupsFactory)
+            val groupState = group.uiStateFlow.collectAsStateWithLifecycle().value
+            LaunchedEffect(groupId) { group.load(groupId) }
+            ShowMessage(groupState.message, snackbarHost, group::messageShown)
+            LaunchedEffect(groupState.left) { if (groupState.left) navController.popBackStack() }
+            GroupScreen(
+                state = groupState,
+                myId = accountId,
+                actions =
+                    GroupActions(
+                        retry = group::retry,
+                        startAdding = group::startAdding,
+                        stopAdding = group::stopAdding,
+                        add = group::add,
+                        askRemove = group::askRemove,
+                        confirmRemove = group::confirmRemove,
+                        cancelRemove = group::cancelRemove,
+                        askLeave = group::askLeave,
+                        confirmLeave = { accountId?.let(group::confirmLeave) },
+                        cancelLeave = group::cancelLeave,
+                        startRename = group::startRename,
+                        onNameDraftChange = group::onNameDraftChange,
+                        saveRename = group::saveRename,
+                        cancelRename = group::cancelRename,
+                    ),
+                onBack = { navController.popBackStack() },
+                onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.MATCH, movie) },
+                onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
+            )
+        }
         composable(AppSection.USER.route) {
             if (accountId == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -323,6 +402,24 @@ private const val PROFILE_USER_ID = "userId"
 private const val PROFILE_ROUTE = "profile/{$PROFILE_USER_ID}"
 
 private fun profileRoute(userId: String) = "profile/$userId"
+
+/** A group's own screen, `group/<groupId>`, and the new-group screen. */
+private const val GROUP_ID = "groupId"
+private const val GROUP_ROUTE = "group/{$GROUP_ID}"
+private const val NEW_GROUP_ROUTE = "groups/new"
+
+private fun groupRoute(groupId: String) = "group/$groupId"
+
+/** Shows [message] in the shared snackbar once, then tells the screen it was shown. */
+@Composable
+private fun ShowMessage(message: String?, snackbarHost: SnackbarHostState, onShown: () -> Unit) {
+    LaunchedEffect(message) {
+        message?.let {
+            snackbarHost.showSnackbar(it)
+            onShown()
+        }
+    }
+}
 
 @Composable
 private fun ProfileRoute(

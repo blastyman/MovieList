@@ -33,7 +33,11 @@ class BackendReactionRepository(private val api: ReactionApi) : ReactionReposito
             return MatchPeople.NONE
         }
         val saved = api.setReaction(movieId, SetReactionRequest(reaction))
-        return MatchPeople(saved.matchedPeople.orEmpty().map { it.toMatchPerson() }, saved.matchedCount)
+        return MatchPeople(
+            saved.matchedPeople.orEmpty().map { it.toMatchPerson() },
+            saved.matchedCount,
+            saved.completedGroups.orEmpty().map { it.toGroupBrief() },
+        )
     }
 
     private companion object {

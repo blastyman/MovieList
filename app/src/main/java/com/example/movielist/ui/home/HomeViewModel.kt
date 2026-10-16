@@ -219,7 +219,7 @@ class HomeViewModel(
                     // "It's a match!" — unless the like was already taken back.
                     _uiState.update {
                         if (it.reactionTo(movie.id) != Reaction.LIKE) it
-                        else it.copy(matchPopup = Match(movie, matched.people, matched.count, Instant.now()))
+                        else it.copy(matchPopup = Match(movie, matched.people, matched.count, Instant.now(), matched.completedGroups))
                     }
                 }
             } catch (exception: CancellationException) {

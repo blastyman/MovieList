@@ -14,6 +14,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.movielist.R
+import com.example.movielist.domain.model.GroupBrief
 import com.example.movielist.domain.model.Match
 import com.example.movielist.domain.model.UserSummary
 import com.example.movielist.ui.components.MovieImage
@@ -70,6 +73,7 @@ fun MatchPopup(
     match: Match,
     myName: String?,
     onOpenProfile: (UserSummary) -> Unit,
+    onOpenGroup: (GroupBrief) -> Unit,
     onSeeMatches: () -> Unit,
     onKeepSwiping: () -> Unit,
 ) {
@@ -196,6 +200,28 @@ fun MatchPopup(
                     color = Color.LightGray,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                // A like that completes a group: everyone in it now likes this movie.
+                match.completedGroups.forEach { group ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier.clip(RoundedCornerShape(50))
+                                .background(MovieRed.copy(alpha = 0.18f))
+                                .clickable { onOpenGroup(group) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
+                        Icon(Icons.Default.Groups, contentDescription = null, tint = MovieRed, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.match_group_all, group.name),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = { onOpenProfile(person.user) },

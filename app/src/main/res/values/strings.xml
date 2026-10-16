@@ -34,6 +34,36 @@
         <item quantity="other">%1$s and %2$d others like it too</item>
     </plurals>
 
+    <string name="match_group_all">Everyone in %1$s likes it!</string>
+
+    <!-- Groups -->
+    <string name="groups_empty">No groups yet. Make one with friends to find the movies you all like.</string>
+    <string name="groups_new">New group</string>
+    <string name="groups_count">%1$d/%2$d</string>
+    <string name="groups_create_title">new group</string>
+    <string name="groups_name_hint">Group name</string>
+    <string name="groups_pick_friends">Pick friends</string>
+    <string name="groups_create">Create group</string>
+    <string name="groups_no_friends">Add friends first: only your friends can join your groups.</string>
+    <string name="group_owner">owner</string>
+    <string name="group_you">you</string>
+    <string name="group_members">members (%1$d/%2$d)</string>
+    <string name="group_add">Add friends</string>
+    <string name="group_add_none">All your friends are already in this group.</string>
+    <string name="group_full">This group is full.</string>
+    <string name="group_options">Member options</string>
+    <string name="group_remove">Remove from group</string>
+    <string name="group_remove_title">Remove %1$s from the group?</string>
+    <string name="group_leave">Leave group</string>
+    <string name="group_leave_title">Leave %1$s?</string>
+    <string name="group_leave_text">Someone in the group can add you again later.</string>
+    <string name="group_leave_owner_text">You\'re the owner: the member who joined first takes over. If you\'re the last one, the group is deleted.</string>
+    <string name="group_rename">Rename group</string>
+    <string name="group_matches">movies you all like</string>
+    <string name="group_matches_empty">No movie everyone likes yet. Keep swiping!</string>
+    <string name="group_matches_alone">Add friends to see the movies you all like.</string>
+    <string name="done">Done</string>
+
     <!-- Ratings -->
     <plurals name="rating_average">
         <item quantity="one">%1$s average · %2$d rating</item>

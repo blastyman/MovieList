@@ -8,6 +8,7 @@ import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
 import com.example.movielist.data.remote.CommentApi
 import com.example.movielist.data.remote.FriendApi
+import com.example.movielist.data.remote.GroupApi
 import com.example.movielist.data.remote.MatchApi
 import com.example.movielist.data.remote.MovieApi
 import com.example.movielist.data.remote.MovieSearchApi
@@ -18,6 +19,7 @@ import com.example.movielist.data.remote.UserApi
 import com.example.movielist.data.repository.BackendAuthRepository
 import com.example.movielist.data.repository.BackendCommentRepository
 import com.example.movielist.data.repository.BackendFriendRepository
+import com.example.movielist.data.repository.BackendGroupRepository
 import com.example.movielist.data.repository.BackendMatchRepository
 import com.example.movielist.data.repository.BackendMovieRepository
 import com.example.movielist.data.repository.BackendMovieSearchRepository
@@ -29,6 +31,9 @@ import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.ui.auth.AuthViewModel
 import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.friends.FriendsViewModel
+import com.example.movielist.ui.groups.CreateGroupViewModel
+import com.example.movielist.ui.groups.GroupViewModel
+import com.example.movielist.ui.groups.GroupsViewModel
 import com.example.movielist.ui.home.HomeViewModel
 import com.example.movielist.ui.matches.MatchesViewModel
 import com.example.movielist.ui.profile.ProfileViewModel
@@ -71,6 +76,7 @@ class AppContainer(context: Context) {
     private val userRepository by lazy { BackendUserRepository(backend.create(UserApi::class.java)) }
     private val friendRepository by lazy { BackendFriendRepository(backend.create(FriendApi::class.java)) }
     private val matchRepository by lazy { BackendMatchRepository(backend.create(MatchApi::class.java)) }
+    private val groupRepository by lazy { BackendGroupRepository(backend.create(GroupApi::class.java)) }
     private val movieSearchRepository by lazy {
         BackendMovieSearchRepository(backend.create(MovieSearchApi::class.java))
     }
@@ -92,6 +98,22 @@ class AppContainer(context: Context) {
 
     fun matchesViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { MatchesViewModel(matchRepository) }
+
+    /** The groups list, the new-group screen and a group's own screen. */
+    fun groupsViewModelFactory(): ViewModelProvider.Factory =
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                val viewModel: ViewModel =
+                    when (modelClass) {
+                        GroupsViewModel::class.java -> GroupsViewModel(groupRepository)
+                        CreateGroupViewModel::class.java -> CreateGroupViewModel(friendRepository, groupRepository)
+                        GroupViewModel::class.java -> GroupViewModel(groupRepository, friendRepository)
+                        else -> throw IllegalArgumentException("Unknown group ViewModel $modelClass")
+                    }
+                @Suppress("UNCHECKED_CAST")
+                return viewModel as T
+            }
+        }
 
     fun authViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { AuthViewModel(authRepository) }

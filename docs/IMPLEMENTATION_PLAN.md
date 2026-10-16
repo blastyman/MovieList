@@ -34,7 +34,7 @@ likes in common; liking one returns `matchedPeople` so the app shows an "It's a 
 opens their profile, to meet people through movies) ·
 Phase 9 ✅ (friend groups of at most 10 with a GROUP conversation each, limit enforced under a row lock; groups
 list, new-group screen with friend picker and "n/10" counter, group screen with the movies everyone likes, members,
-add/remove/leave/rename; the match popup says when a like completes a group. Removing a friend keeps them in
+add/remove/leave/rename, and the owner can disband it; the match popup says when a like completes a group. Removing a friend keeps them in
 shared groups. Person matches stay on the Matches screen; group matches live on each group's screen).
 
 ## 1. Required features

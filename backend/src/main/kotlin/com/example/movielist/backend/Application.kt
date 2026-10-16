@@ -75,8 +75,8 @@ fun Application.module(
     monitor.subscribe(ApplicationStopped) { tmdbClient.close() }
     val movieService = MovieService(tmdbClient, database)
     val matchService = MatchService(database)
-    val groupService = GroupService(database)
     val avatarStore = AvatarStore(File(config.uploadDir))
+    val groupService = GroupService(database, avatarStore)
     val authService = AuthService(UserRepository(database), PasswordHasher(), jwtService, groupService, avatarStore)
     val reactionService = ReactionService(database, movieService, matchService, groupService)
     val ratingService = RatingService(database, movieService)

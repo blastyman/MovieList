@@ -7,8 +7,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreateGroupRequest(val name: String, val memberIds: List<String> = emptyList())
 
+/** A missing field stays as it is; a blank emoji or colour removes it. Owner only. */
 @Serializable
-data class RenameGroupRequest(val name: String)
+data class UpdateGroupRequest(
+    val name: String? = null,
+    val avatarEmoji: String? = null,
+    /** `#RRGGBB`. */
+    val avatarColor: String? = null,
+)
 
 @Serializable
 data class AddMemberRequest(val userId: String)
@@ -18,6 +24,10 @@ data class AddMemberRequest(val userId: String)
 data class GroupDto(
     val id: String,
     val name: String,
+    /** The group's icon: a photo (`/avatars/…`), else an emoji on a colour. */
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
+    val avatarColor: String?,
     val ownerId: String,
     /** The group's chat. */
     val conversationId: String,

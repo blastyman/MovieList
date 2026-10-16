@@ -46,6 +46,9 @@ object Friendships : Table("friendships") {
 object FriendGroups : Table("friend_groups") {
     val id = javaUUID("id").autoGenerate()
     val name = varchar("name", 50)
+    val avatarUrl = text("avatar_url").nullable()
+    val avatarEmoji = text("avatar_emoji").nullable()
+    val avatarColor = varchar("avatar_color", 7).nullable()
     val ownerId = javaUUID("owner_id").references(Users.id, onDelete = ReferenceOption.CASCADE)
     val createdAt = timestampWithTimeZone("created_at").defaultExpression(CurrentTimestampWithTimeZone)
 

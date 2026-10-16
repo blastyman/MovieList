@@ -4,6 +4,7 @@ import com.example.movielist.backend.db.Users
 import com.example.movielist.backend.db.violatedUniqueConstraint
 import com.example.movielist.backend.features.groups.GroupService
 import com.example.movielist.backend.features.users.AvatarStore
+import com.example.movielist.backend.features.users.validAvatarParts
 import com.example.movielist.backend.features.users.UserRecord
 import com.example.movielist.backend.features.users.UserRepository
 import com.example.movielist.backend.plugins.ApiException
@@ -68,24 +69,19 @@ class AuthService(
     suspend fun updateMe(userId: UUID, request: UpdateMeRequest): CurrentUserDto {
         val displayName = request.displayName?.trim()
         val username = request.username?.trim()
-        val emoji = request.avatarEmoji?.trim()
-        val color = request.avatarColor?.trim()
+        val (emoji, color) = validAvatarParts(request.avatarEmoji, request.avatarColor)
 
         if (!displayName.isNullOrEmpty() && displayName.length > 50) {
             throw ValidationException("Display name must be at most 50 characters")
         }
         if (username != null) validateUsername(username)
-        if (!emoji.isNullOrEmpty() && (emoji.length > 16 || emoji.any { it.isLetterOrDigit() })) {
-            throw ValidationException("Pick a single emoji")
-        }
-        if (!color.isNullOrEmpty() && !COLOR_REGEX.matches(color)) throw ValidationException("Colour must look like #RRGGBB")
 
         val updated = try {
             users.update(userId) {
                 if (displayName != null) it[Users.displayName] = displayName.ifEmpty { null }
                 if (username != null) it[Users.username] = username
                 if (emoji != null) it[Users.avatarEmoji] = emoji.ifEmpty { null }
-                if (color != null) it[Users.avatarColor] = color.ifEmpty { null }?.uppercase()
+                if (color != null) it[Users.avatarColor] = color.ifEmpty { null }
             }
         } catch (e: ExposedSQLException) {
             if (e.violatedUniqueConstraint() == "users_username_lower_key") throw usernameTaken() else throw e
@@ -176,7 +172,6 @@ class AuthService(
     private companion object {
         val USERNAME_REGEX = Regex("^[A-Za-z0-9._]{3,30}$")
         val EMAIL_REGEX = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-        val COLOR_REGEX = Regex("^#[0-9A-Fa-f]{6}$")
     }
 }
 

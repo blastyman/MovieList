@@ -10,10 +10,12 @@ import com.example.movielist.backend.db.Reaction
 import com.example.movielist.backend.db.Users
 import com.example.movielist.backend.db.query
 import com.example.movielist.backend.features.movies.toSummary
+import com.example.movielist.backend.features.users.AvatarStore
 import com.example.movielist.backend.features.users.FriendshipState
 import com.example.movielist.backend.features.users.UserSummaryDto
 import com.example.movielist.backend.features.users.friendshipStates
 import com.example.movielist.backend.features.users.toUserSummary
+import com.example.movielist.backend.features.users.validAvatarParts
 import com.example.movielist.backend.plugins.ApiException
 import com.example.movielist.backend.plugins.ForbiddenException
 import com.example.movielist.backend.plugins.NotFoundException
@@ -22,6 +24,7 @@ import io.ktor.http.HttpStatusCode
 import org.jetbrains.exposed.v1.core.Count
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Max
+import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -52,7 +55,11 @@ class NotYourFriendException :
  * group row (`SELECT … FOR UPDATE`): two invites at once queue up on that lock, and the second
  * one counts the first one's member, so a group can never reach 11.
  */
-class GroupService(private val db: Database, private val clock: Clock = Clock.systemUTC()) {
+class GroupService(
+    private val db: Database,
+    private val avatars: AvatarStore,
+    private val clock: Clock = Clock.systemUTC(),
+) {
 
     /** Groups the caller is in, newest first. */
     suspend fun groups(me: UUID): List<GroupDto> = db.query {
@@ -63,7 +70,7 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
         FriendGroups.selectAll()
             .where { FriendGroups.id inList ids }
             .orderBy(FriendGroups.createdAt to SortOrder.DESC)
-            .map { toDto(me, it[FriendGroups.id], it[FriendGroups.name], it[FriendGroups.ownerId], it[FriendGroups.createdAt]) }
+            .map { toDto(me, it) }
     }
 
     suspend fun create(me: UUID, request: CreateGroupRequest): GroupDto {
@@ -96,13 +103,45 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
         group(me, groupId)
     }
 
-    suspend fun rename(me: UUID, groupId: UUID, request: RenameGroupRequest): GroupDto {
-        val name = validName(request.name)
+    /** Renames the group or changes its emoji icon. Owner only. */
+    suspend fun update(me: UUID, groupId: UUID, request: UpdateGroupRequest): GroupDto {
+        val name = request.name?.let(::validName)
+        val (emoji, color) = validAvatarParts(request.avatarEmoji, request.avatarColor)
         return db.query {
             requireOwner(me, groupId)
-            FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.name] = name }
+            FriendGroups.update({ FriendGroups.id eq groupId }) {
+                if (name != null) it[FriendGroups.name] = name
+                if (emoji != null) it[FriendGroups.avatarEmoji] = emoji.ifEmpty { null }
+                if (color != null) it[FriendGroups.avatarColor] = color.ifEmpty { null }
+            }
             group(me, groupId)
         }
+    }
+
+    /** A new photo for the group's icon, in place of the old one. Owner only. */
+    suspend fun setAvatar(me: UUID, groupId: UUID, bytes: ByteArray): GroupDto {
+        val old = db.query {
+            requireOwner(me, groupId)
+            avatarOf(groupId)
+        }
+        val path = avatars.save(groupId, bytes)
+        val group = db.query {
+            FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.avatarUrl] = path }
+            group(me, groupId)
+        }
+        avatars.delete(old)
+        return group
+    }
+
+    suspend fun removeAvatar(me: UUID, groupId: UUID): GroupDto {
+        val (old, group) = db.query {
+            requireOwner(me, groupId)
+            val old = avatarOf(groupId)
+            FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.avatarUrl] = null }
+            old to group(me, groupId)
+        }
+        avatars.delete(old)
+        return group
     }
 
     /** Any member may add one of their friends; adding someone who's already in changes nothing. */
@@ -122,30 +161,37 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
      * the member who joined earliest takes over; when the last member leaves, the group is
      * deleted. Returns the group as the caller now sees it, or null if they're no longer in it.
      */
-    suspend fun removeMember(me: UUID, groupId: UUID, userId: UUID): GroupDto? = db.query {
-        val ownerId = lockGroup(groupId)
-        requireMember(me, groupId)
-        if (userId != me && ownerId != me) throw ForbiddenException("Only the group owner can remove members")
-        if (!isMember(userId, groupId)) throw NotFoundException("They are not in this group")
+    suspend fun removeMember(me: UUID, groupId: UUID, userId: UUID): GroupDto? {
+        // A group deleted because its last member left takes its photo with it, once committed.
+        var deletedAvatar: String? = null
+        val result = db.query {
+            val ownerId = lockGroup(groupId)
+            requireMember(me, groupId)
+            if (userId != me && ownerId != me) throw ForbiddenException("Only the group owner can remove members")
+            if (!isMember(userId, groupId)) throw NotFoundException("They are not in this group")
 
-        val conversationId = conversationOf(groupId)
-        GroupMembers.deleteWhere { (GroupMembers.groupId eq groupId) and (GroupMembers.userId eq userId) }
-        ConversationMembers.deleteWhere {
-            (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId eq userId)
-        }
-        if (userId == ownerId) {
-            val next = GroupMembers.selectAll()
-                .where { GroupMembers.groupId eq groupId }
-                .orderBy(GroupMembers.joinedAt to SortOrder.ASC)
-                .limit(1)
-                .singleOrNull()
-            if (next == null) {
-                FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to its conversation
-            } else {
-                FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.ownerId] = next[GroupMembers.userId] }
+            val conversationId = conversationOf(groupId)
+            GroupMembers.deleteWhere { (GroupMembers.groupId eq groupId) and (GroupMembers.userId eq userId) }
+            ConversationMembers.deleteWhere {
+                (ConversationMembers.conversationId eq conversationId) and (ConversationMembers.userId eq userId)
             }
+            if (userId == ownerId) {
+                val next = GroupMembers.selectAll()
+                    .where { GroupMembers.groupId eq groupId }
+                    .orderBy(GroupMembers.joinedAt to SortOrder.ASC)
+                    .limit(1)
+                    .singleOrNull()
+                if (next == null) {
+                    deletedAvatar = avatarOf(groupId)
+                    FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to its conversation
+                } else {
+                    FriendGroups.update({ FriendGroups.id eq groupId }) { it[FriendGroups.ownerId] = next[GroupMembers.userId] }
+                }
+            }
+            if (userId == me) null else group(me, groupId)
         }
-        if (userId == me) null else group(me, groupId)
+        avatars.delete(deletedAvatar)
+        return result
     }
 
     /** Leaves every group, handing over the ones [me] owns; used when an account is deleted. */
@@ -158,11 +204,14 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
 
     /** The owner deletes the group for everyone, its chat included. */
     suspend fun disband(me: UUID, groupId: UUID) {
-        db.query {
+        val avatar = db.query {
             lockGroup(groupId)
             requireOwner(me, groupId)
+            val avatar = avatarOf(groupId)
             FriendGroups.deleteWhere { FriendGroups.id eq groupId } // cascades to members and its conversation
+            avatar
         }
+        avatars.delete(avatar)
     }
 
     /** Movies every member likes, the newest match first. Needs at least two members. */
@@ -213,18 +262,15 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
             ?.get(FriendGroups.ownerId)
             ?: throw NotFoundException("No such group")
 
-    private fun JdbcTransaction.group(me: UUID, groupId: UUID): GroupDto {
-        val row = FriendGroups.selectAll().where { FriendGroups.id eq groupId }.single()
-        return toDto(me, groupId, row[FriendGroups.name], row[FriendGroups.ownerId], row[FriendGroups.createdAt])
-    }
+    private fun JdbcTransaction.group(me: UUID, groupId: UUID): GroupDto =
+        toDto(me, FriendGroups.selectAll().where { FriendGroups.id eq groupId }.single())
 
-    private fun JdbcTransaction.toDto(
-        me: UUID,
-        groupId: UUID,
-        name: String,
-        ownerId: UUID,
-        createdAt: OffsetDateTime,
-    ): GroupDto {
+    private fun JdbcTransaction.avatarOf(groupId: UUID): String? =
+        FriendGroups.select(FriendGroups.avatarUrl).where { FriendGroups.id eq groupId }.single()[FriendGroups.avatarUrl]
+
+    private fun JdbcTransaction.toDto(me: UUID, group: ResultRow): GroupDto {
+        val groupId = group[FriendGroups.id]
+        val ownerId = group[FriendGroups.ownerId]
         val rows = GroupMembers.join(Users, JoinType.INNER, GroupMembers.userId, Users.id)
             .selectAll()
             .where { GroupMembers.groupId eq groupId }
@@ -236,12 +282,15 @@ class GroupService(private val db: Database, private val clock: Clock = Clock.sy
             .map { it.toUserSummary(states[it[Users.id]] ?: FriendshipState.NONE) }
         return GroupDto(
             id = groupId.toString(),
-            name = name,
+            name = group[FriendGroups.name],
+            avatarUrl = group[FriendGroups.avatarUrl],
+            avatarEmoji = group[FriendGroups.avatarEmoji],
+            avatarColor = group[FriendGroups.avatarColor],
             ownerId = ownerId.toString(),
             conversationId = conversationOf(groupId).toString(),
             members = members,
             maxMembers = MAX_MEMBERS,
-            createdAt = createdAt.toInstant().toString(),
+            createdAt = group[FriendGroups.createdAt].toInstant().toString(),
         )
     }
 

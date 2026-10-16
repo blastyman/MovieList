@@ -57,3 +57,15 @@ class AvatarStore(private val directory: File) {
         private val NAME = Regex("^[0-9a-f-]{36}-[0-9a-f-]{36}\\.(jpg|png|webp)$")
     }
 }
+
+/**
+ * Checks a requested avatar emoji and colour, for people and groups alike. Returns them trimmed
+ * (colour upper-cased); null stays null (no change) and blank stays blank (remove it).
+ */
+fun validAvatarParts(emoji: String?, color: String?): Pair<String?, String?> {
+    val e = emoji?.trim()
+    val c = color?.trim()
+    if (!e.isNullOrEmpty() && (e.length > 16 || e.any { it.isLetterOrDigit() })) throw ValidationException("Pick a single emoji")
+    if (!c.isNullOrEmpty() && !Regex("^#[0-9A-Fa-f]{6}$").matches(c)) throw ValidationException("Colour must look like #RRGGBB")
+    return e to c?.uppercase()
+}

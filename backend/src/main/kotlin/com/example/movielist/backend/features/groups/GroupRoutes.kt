@@ -1,5 +1,6 @@
 package com.example.movielist.backend.features.groups
 
+import com.example.movielist.backend.features.users.receiveAvatar
 import com.example.movielist.backend.plugins.AUTH_JWT
 import com.example.movielist.backend.plugins.ValidationException
 import com.example.movielist.backend.plugins.userId
@@ -23,7 +24,10 @@ fun Route.groupRoutes(groupService: GroupService) {
             post { call.respond(HttpStatusCode.Created, groupService.create(call.userId, call.receive())) }
             route("/{groupId}") {
                 get { call.respond(groupService.group(call.userId, call.groupId())) }
-                patch { call.respond(groupService.rename(call.userId, call.groupId(), call.receive())) }
+                patch { call.respond(groupService.update(call.userId, call.groupId(), call.receive())) }
+                // The group's icon as a photo: the picture is the body, like a profile picture.
+                post("/avatar") { call.respond(groupService.setAvatar(call.userId, call.groupId(), call.receiveAvatar())) }
+                delete("/avatar") { call.respond(groupService.removeAvatar(call.userId, call.groupId())) }
                 delete {
                     groupService.disband(call.userId, call.groupId())
                     call.respond(HttpStatusCode.NoContent)

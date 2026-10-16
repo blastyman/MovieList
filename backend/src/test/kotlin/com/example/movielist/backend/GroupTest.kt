@@ -1,11 +1,12 @@
 package com.example.movielist.backend
 
+import com.example.movielist.backend.features.chat.ConversationDto
 import com.example.movielist.backend.features.groups.AddMemberRequest
 import com.example.movielist.backend.features.groups.CreateGroupRequest
 import com.example.movielist.backend.features.groups.GroupDto
 import com.example.movielist.backend.features.groups.GroupMatchDto
 import com.example.movielist.backend.features.groups.GroupService
-import com.example.movielist.backend.features.groups.RenameGroupRequest
+import com.example.movielist.backend.features.groups.UpdateGroupRequest
 import com.example.movielist.backend.features.users.FriendshipState
 import com.example.movielist.backend.plugins.ErrorResponse
 import io.ktor.client.HttpClient
@@ -166,7 +167,7 @@ class GroupTest {
         val rename = client.patch("/groups/${group.id}") {
             bearerAuth(friends[0].token)
             contentType(ContentType.Application.Json)
-            setBody(RenameGroupRequest("Mine now"))
+            setBody(UpdateGroupRequest("Mine now"))
         }
         assertEquals(HttpStatusCode.Forbidden, rename.status)
 
@@ -235,7 +236,47 @@ class GroupTest {
     }
 
     @Test
-    fun `bad names are rejected`() = apiTest { client ->
+    fun `the owner sets the group icon, an emoji or a photo, and everyone sees it`() = apiTest { client ->
+        val (owner, friends) = client.ownerWithFriends(1)
+        val group = client.createGroup(owner, "Iconic", friends).body<GroupDto>()
+        val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47) + ByteArray(32)
+
+        val emoji = client.patch("/groups/${group.id}") {
+            bearerAuth(owner.token)
+            contentType(ContentType.Application.Json)
+            setBody(UpdateGroupRequest(avatarEmoji = "🎬", avatarColor = "#5e35b1"))
+        }.body<GroupDto>()
+        assertEquals("🎬", emoji.avatarEmoji)
+        assertEquals("#5E35B1", emoji.avatarColor)
+        assertEquals("Iconic", emoji.name) // untouched
+
+        // Members can't change it.
+        val notOwner = client.post("/groups/${group.id}/avatar") {
+            bearerAuth(friends[0].token)
+            contentType(ContentType.Image.PNG)
+            setBody(png)
+        }
+        assertEquals(HttpStatusCode.Forbidden, notOwner.status)
+
+        val photo = client.post("/groups/${group.id}/avatar") {
+            bearerAuth(owner.token)
+            contentType(ContentType.Image.PNG)
+            setBody(png)
+        }.body<GroupDto>()
+        val path = photo.avatarUrl!!
+        assertEquals(HttpStatusCode.OK, client.get(path).status)
+        assertEquals(path, client.group(friends[0], group.id).body<GroupDto>().avatarUrl)
+        // The group chat shows it too.
+        val chat = client.get("/conversations") { bearerAuth(friends[0].token) }.body<List<ConversationDto>>().single()
+        assertEquals(path, chat.avatarUrl)
+
+        // Disbanding deletes the picture with the group.
+        client.delete("/groups/${group.id}") { bearerAuth(owner.token) }
+        assertEquals(HttpStatusCode.NotFound, client.get(path).status)
+    }
+
+    @Test
+    fun `bad names are rejected`()= apiTest { client ->
         val owner = client.registerUser("owner")
         assertEquals(HttpStatusCode.BadRequest, client.createGroup(owner, "   ", emptyList()).status)
         assertEquals(HttpStatusCode.BadRequest, client.createGroup(owner, "x".repeat(51), emptyList()).status)

@@ -25,6 +25,10 @@ data class ConversationDto(
     /** The group's name, or the other person's name in a direct chat. */
     val title: String,
     val groupId: String?,
+    /** A group chat's icon (the group's); null for one-to-one chats, which show the other person. */
+    val avatarUrl: String? = null,
+    val avatarEmoji: String? = null,
+    val avatarColor: String? = null,
     /** Everyone in it except you. */
     val members: List<UserSummaryDto>,
     val lastMessage: MessageDto?,

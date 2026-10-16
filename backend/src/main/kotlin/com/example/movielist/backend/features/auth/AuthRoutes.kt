@@ -1,16 +1,14 @@
 package com.example.movielist.backend.features.auth
 
 import com.example.movielist.backend.features.users.AvatarStore
-import com.example.movielist.backend.features.users.AvatarTooLargeException
+import com.example.movielist.backend.features.users.receiveAvatar
 import com.example.movielist.backend.plugins.AUTH_JWT
 import com.example.movielist.backend.plugins.NotFoundException
 import com.example.movielist.backend.plugins.userId
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
-import io.ktor.server.request.contentLength
 import io.ktor.server.request.receive
-import io.ktor.server.request.receiveChannel
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondFile
@@ -21,8 +19,6 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import io.ktor.utils.io.readRemaining
-import kotlinx.io.readByteArray
 
 fun Route.authRoutes(authService: AuthService, avatars: AvatarStore) {
     route("/auth") {
@@ -57,14 +53,7 @@ fun Route.authRoutes(authService: AuthService, avatars: AvatarStore) {
                 authService.changePassword(call.userId, call.receive<ChangePasswordRequest>())
                 call.respond(HttpStatusCode.NoContent)
             }
-            // The picture itself is the body (image/jpeg, png or webp), no multipart needed.
-            post("/avatar") {
-                val declared = call.request.contentLength()
-                if (declared != null && declared > AvatarStore.MAX_BYTES) throw AvatarTooLargeException()
-                // Read at most one byte past the limit, so a body without a length can't run away.
-                val bytes = call.receiveChannel().readRemaining(AvatarStore.MAX_BYTES + 1L).readByteArray()
-                call.respond(authService.setAvatar(call.userId, bytes))
-            }
+            post("/avatar") { call.respond(authService.setAvatar(call.userId, call.receiveAvatar())) }
             delete("/avatar") { call.respond(authService.removeAvatar(call.userId)) }
         }
     }

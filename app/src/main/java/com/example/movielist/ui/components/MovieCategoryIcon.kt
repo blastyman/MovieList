@@ -5,7 +5,9 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
@@ -23,4 +25,6 @@ val MovieCategory.icon: ImageVector
             MovieCategory.SCI_FI -> Icons.Default.RocketLaunch
             MovieCategory.LIKED -> Icons.Default.ThumbUp
             MovieCategory.DISLIKED -> Icons.Default.ThumbDown
+            MovieCategory.SEARCH -> Icons.Default.Search
+            MovieCategory.PROFILE -> Icons.Default.Person
         }

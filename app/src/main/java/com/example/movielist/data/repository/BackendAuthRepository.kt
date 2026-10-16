@@ -4,6 +4,7 @@ import com.example.movielist.data.model.AuthResponse
 import com.example.movielist.data.model.ErrorResponse
 import com.example.movielist.data.model.LoginRequest
 import com.example.movielist.data.model.RegisterRequest
+import com.example.movielist.data.model.UpdateMeRequest
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.domain.model.Account
@@ -47,6 +48,10 @@ class BackendAuthRepository(
 
     override suspend fun refreshAccount(): Result<Account> =
         call { api.me().toAccount() }.onSuccess { _account.value = it }
+
+    override suspend fun updateDisplayName(displayName: String): Result<Account> =
+        call { api.updateMe(UpdateMeRequest(displayName = displayName.trim())).toAccount() }
+            .onSuccess { _account.value = it }
 
     override suspend fun logout() {
         _account.value = null

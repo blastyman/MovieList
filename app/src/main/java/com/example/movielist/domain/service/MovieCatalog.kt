@@ -7,7 +7,7 @@ object MovieCatalog {
     fun categorize(movies: List<Movie>): Map<MovieCategory, List<Movie>> {
         val usedMovieIds = mutableSetOf<Int>()
         return MovieCategory.entries
-            .filter { it != MovieCategory.LIKED && it != MovieCategory.DISLIKED }
+            .filter { it.isHomeShelf }
             .associateWith { category ->
                 when (category) {
                     MovieCategory.RECOMMENDED -> movies.shuffled()

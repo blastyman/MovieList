@@ -63,7 +63,6 @@ import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieDisliked
 import com.example.movielist.ui.theme.MovieLiked
 import com.example.movielist.ui.theme.MovieRed
-import com.example.movielist.ui.utils.shortOverview
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -87,12 +86,9 @@ fun MovieDetailsScreen(
 ) {
     val latestOnLike by rememberUpdatedState(onLike)
     val latestOnDislike by rememberUpdatedState(onDislike)
-    var expanded by remember(movie.id) { mutableStateOf(false) }
     var playingTrailer by remember(movie.id) { mutableStateOf(false) }
     var dragOffset by remember(movie.id) { mutableFloatStateOf(0f) }
 
-    val shortText = shortOverview(movie.overview)
-    val needsExpansion = movie.overview.length > shortText.length
     val swipeThreshold = 220f
 
     Column(
@@ -229,38 +225,12 @@ fun MovieDetailsScreen(
             TrailerDialog(trailer, onDismiss = { playingTrailer = false })
         }
 
+        // The whole overview, as TMDB shows it; the screen scrolls.
         Text(
-            text =
-                if (expanded)
-                    movie.overview.ifBlank {
-                        stringResource(com.example.movielist.R.string.no_description)
-                    }
-                else shortText,
+            text = movie.overview.ifBlank { stringResource(R.string.no_description) },
             style = MaterialTheme.typography.bodyLarge,
             color = Color.LightGray,
-            maxLines = if (expanded) Int.MAX_VALUE else 5,
         )
-
-        if (!expanded && needsExpansion) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                TextButton(
-                    onClick = { expanded = true },
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.textButtonColors(containerColor = MovieRed),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text = stringResource(com.example.movielist.R.string.read_more),
-                        color = Color.White,
-                        style =
-                            MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    )
-                }
-            }
-        }
 
         Spacer(modifier = Modifier.height(28.dp))
 
@@ -287,20 +257,19 @@ private fun TrailerButton(onClick: () -> Unit) {
     }
 }
 
-/** Everyone's average, converted to the same five-star scale as the stars. */
+/** Everyone's average, converted to the same five-star scale as the stars. Nothing until someone rates. */
 @Composable
 private fun RatingAverage(rating: RatingStats) {
-    val average = rating.average
+    val average = rating.average ?: return
+    if (rating.count == 0) return
     Text(
         text =
-            if (average == null || rating.count == 0) stringResource(R.string.rating_none)
-            else
-                pluralStringResource(
-                    R.plurals.rating_average,
-                    rating.count,
-                    "★ " + String.format(Locale.getDefault(), "%.1f", average / 2),
-                    rating.count,
-                ),
+            pluralStringResource(
+                R.plurals.rating_average,
+                rating.count,
+                "★ " + String.format(Locale.getDefault(), "%.1f", average / 2),
+                rating.count,
+            ),
         style = MaterialTheme.typography.bodyMedium,
         color = Color.LightGray,
     )

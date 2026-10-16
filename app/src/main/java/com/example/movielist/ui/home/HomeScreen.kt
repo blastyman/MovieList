@@ -42,15 +42,22 @@ import com.example.movielist.ui.lists.MovieListsScreen
 import com.example.movielist.ui.matches.MatchesScreen
 import com.example.movielist.ui.navigation.AppDrawer
 import com.example.movielist.ui.navigation.AppSection
-import com.example.movielist.ui.user.UserScreen
+import com.example.movielist.domain.model.MovieCategory
+import com.example.movielist.ui.profile.ProfileScreen
+import com.example.movielist.ui.profile.ProfileViewModel
+import com.example.movielist.ui.search.SearchScreen
+import com.example.movielist.ui.search.SearchViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
     factory: ViewModelProvider.Factory,
     commentsFactory: ViewModelProvider.Factory,
+    searchFactory: ViewModelProvider.Factory,
+    profileFactory: ViewModelProvider.Factory,
     viewModelKey: String,
-    accountUsername: String?,
+    /** The signed-in account; null until it has loaded. */
+    accountId: String?,
     onLogout: () -> Unit,
 ) {
     val viewModel: HomeViewModel = viewModel(key = viewModelKey, factory = factory)
@@ -109,7 +116,9 @@ fun HomeScreen(
                             navController = navController,
                             state = state,
                             viewModel = viewModel,
-                            accountUsername = accountUsername,
+                            accountId = accountId,
+                            searchFactory = searchFactory,
+                            profileFactory = profileFactory,
                             onLogout = onLogout,
                             openMenu = openMenu,
                         )
@@ -161,7 +170,9 @@ private fun SectionNavHost(
     navController: NavHostController,
     state: HomeUiState,
     viewModel: HomeViewModel,
-    accountUsername: String?,
+    accountId: String?,
+    searchFactory: ViewModelProvider.Factory,
+    profileFactory: ViewModelProvider.Factory,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
 ) {
@@ -191,11 +202,35 @@ private fun SectionNavHost(
             )
         }
         composable(AppSection.MATCHES.route) { MatchesScreen(openMenu) }
-        composable(AppSection.USER.route) {
-            UserScreen(
-                accountUsername = accountUsername,
-                onLogout = onLogout,
+        composable(AppSection.SEARCH.route) {
+            val search: SearchViewModel = viewModel(factory = searchFactory)
+            SearchScreen(
+                state = search.uiStateFlow.collectAsStateWithLifecycle().value,
+                onQueryChange = search::onQueryChange,
+                onTabSelected = search::selectTab,
+                onLoadMore = search::loadMore,
+                onRetry = search::retry,
+                onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.SEARCH, movie) },
+                onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
                 onMenuClick = openMenu,
+            )
+        }
+        composable(AppSection.USER.route) {
+            if (accountId == null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            } else {
+                ProfileRoute(accountId, profileFactory, viewModel, onMenuClick = openMenu, onBack = null, onLogout = onLogout)
+            }
+        }
+        composable(PROFILE_ROUTE) { entry ->
+            val userId = entry.arguments?.getString(PROFILE_USER_ID).orEmpty()
+            ProfileRoute(
+                userId,
+                profileFactory,
+                viewModel,
+                onMenuClick = null,
+                onBack = { navController.popBackStack() },
+                onLogout = onLogout,
             )
         }
     }
@@ -223,4 +258,35 @@ private fun LoadingMessage(message: String, onRetry: () -> Unit) {
         Text(message)
         Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
     }
+}
+
+/** Someone's profile, opened from search: `profile/<userId>`. Each opened profile has its own ViewModel. */
+private const val PROFILE_USER_ID = "userId"
+private const val PROFILE_ROUTE = "profile/{$PROFILE_USER_ID}"
+
+private fun profileRoute(userId: String) = "profile/$userId"
+
+@Composable
+private fun ProfileRoute(
+    userId: String,
+    profileFactory: ViewModelProvider.Factory,
+    homeViewModel: HomeViewModel,
+    onMenuClick: (() -> Unit)?,
+    onBack: (() -> Unit)?,
+    onLogout: () -> Unit,
+) {
+    val profile: ProfileViewModel = viewModel(factory = profileFactory)
+    LaunchedEffect(userId) { profile.load(userId) }
+    ProfileScreen(
+        state = profile.uiStateFlow.collectAsStateWithLifecycle().value,
+        onRetry = profile::retry,
+        onMovieClick = { movie -> homeViewModel.selectMovie(MovieCategory.PROFILE, movie) },
+        onMenuClick = onMenuClick,
+        onBack = onBack,
+        onEditName = profile::startEditName,
+        onNameDraftChange = profile::onNameDraftChange,
+        onSaveName = profile::saveName,
+        onCancelEditName = profile::cancelEditName,
+        onLogout = onLogout,
+    )
 }

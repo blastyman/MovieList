@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -42,6 +43,7 @@ fun AppDrawer(
                     val icon =
                         when (section) {
                             AppSection.HOME -> Icons.Default.Home
+                            AppSection.SEARCH -> Icons.Default.Search
                             AppSection.LISTS -> Icons.Default.Folder
                             AppSection.MATCHES -> Icons.Default.Group
                             AppSection.USER -> Icons.Default.Person

@@ -117,6 +117,33 @@ class AuthViewModelTest {
             assertFalse(viewModel.uiState.isSubmitting)
         }
 
+    @Test
+    fun successfulSignUpClearsTheFormForTheNextPersonAfterLogout() =
+        runTest(dispatcher) {
+            val viewModel = AuthViewModel(FakeAuthRepository()).apply { toggleMode() }
+            viewModel.onUsernameChange("someone")
+            viewModel.onEmailChange("someone@example.com")
+            viewModel.onPasswordChange("secret-password")
+            viewModel.submit()
+            advanceUntilIdle()
+
+            assertEquals(AuthUiState(), viewModel.uiState) // no username, email or password left behind
+        }
+
+    @Test
+    fun failedLoginKeepsWhatWasTyped() =
+        runTest(dispatcher) {
+            val viewModel =
+                AuthViewModel(FakeAuthRepository(Result.failure(AuthException(AuthError.InvalidCredentials))))
+            viewModel.onLoginChange("someone")
+            viewModel.onPasswordChange("typo-password")
+            viewModel.submit()
+            advanceUntilIdle()
+
+            assertEquals("someone", viewModel.uiState.login)
+            assertEquals("typo-password", viewModel.uiState.password)
+        }
+
     private class FakeAuthRepository(
         private val result: Result<Account> =
             Result.success(Account("1", "someone", "someone@example.com", null, null))
@@ -132,6 +159,8 @@ class AuthViewModelTest {
         override suspend fun login(login: String, password: String) = result.also { calls++ }
 
         override suspend fun refreshAccount() = result
+
+        override suspend fun updateDisplayName(displayName: String) = result
 
         override suspend fun logout() = Unit
     }

@@ -116,12 +116,8 @@ fun CommentsSection(
                     )
                     TextButton(onClick = actions::retry) { Text(stringResource(R.string.retry), color = MovieRed) }
                 }
-            state.comments.isEmpty() ->
-                Text(
-                    text = stringResource(R.string.comments_empty),
-                    color = Color.Gray,
-                    modifier = Modifier.padding(vertical = 12.dp),
-                )
+            // No comments: just the input box above.
+            state.comments.isEmpty() -> Unit
             else -> {
                 state.comments.forEach { comment ->
                     CommentItem(comment, state, actions, scoreOf)

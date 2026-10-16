@@ -8,6 +8,9 @@ data class RegisterRequest(val username: String, val email: String, val password
 
 data class LoginRequest(val login: String, val password: String)
 
+/** PATCH /me. A blank display name removes it; a missing field leaves it unchanged. */
+data class UpdateMeRequest(val displayName: String? = null)
+
 data class AuthResponse(val token: String, val user: AccountDto)
 
 data class AccountDto(

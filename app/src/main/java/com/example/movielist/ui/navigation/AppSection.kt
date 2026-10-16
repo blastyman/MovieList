@@ -3,6 +3,7 @@ package com.example.movielist.ui.navigation
 /** The drawer's top-level destinations. Each one is a Navigation Compose route. */
 enum class AppSection(val displayName: String) {
     HOME("home"),
+    SEARCH("search"),
     LISTS("lists"),
     MATCHES("matches"),
     USER("user");

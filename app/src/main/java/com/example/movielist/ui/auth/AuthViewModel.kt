@@ -59,7 +59,15 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
                             ?: AuthError.Server(exception.message.orEmpty())
                     )
                 }
-            _uiState.update { it.copy(isSubmitting = false, error = error) }
+            _uiState.update {
+                if (error == null) {
+                    // This ViewModel outlives the session: after a logout the form would still hold
+                    // the previous account's details, password included. Start empty instead.
+                    AuthUiState()
+                } else {
+                    it.copy(isSubmitting = false, error = error)
+                }
+            }
         }
     }
 

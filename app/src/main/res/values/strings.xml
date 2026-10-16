@@ -5,12 +5,10 @@
     <string name="no_movies_available">No movies available.</string>
     <string name="no_movies_here">No movies here yet.</string>
     <string name="no_matches">Matches arrive with friend groups: movies everyone in the group liked.</string>
-    <string name="read_more">read more</string>
     <string name="no_description">No description available.</string>
     <string name="recommended_for_you">recommended for you</string>
 
     <!-- Ratings -->
-    <string name="rating_none">No ratings yet. Be the first!</string>
     <plurals name="rating_average">
         <item quantity="one">%1$s average · %2$d rating</item>
         <item quantity="other">%1$s average · %2$d ratings</item>
@@ -24,7 +22,6 @@
     <string name="comments_title">comments</string>
     <string name="comments_hint">Add a comment…</string>
     <string name="comments_send">Post comment</string>
-    <string name="comments_empty">No comments yet. Start the conversation!</string>
     <string name="comments_load_more">load older comments</string>
     <string name="comments_load_error">Couldn\'t load comments. %1$s</string>
     <string name="comments_edited">edited</string>
@@ -81,6 +78,29 @@
     <string name="auth_error_unknown">Something went wrong</string>
 
     <!-- Account -->
-    <string name="account_signed_in_as">signed in as %1$s</string>
     <string name="account_log_out">log out</string>
+
+    <!-- Search -->
+    <string name="search_hint">Search movies or people</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_tab_movies">Movies</string>
+    <string name="search_tab_people">People</string>
+    <string name="search_start">Find movies by title, or people by name.</string>
+    <string name="search_people_min">Type at least 2 characters to find people.</string>
+    <string name="search_nothing">Nothing found for “%1$s”.</string>
+    <string name="friendship_friends">Friends</string>
+    <string name="friendship_request_sent">Request sent</string>
+    <string name="friendship_request_received">Wants to be friends</string>
+
+    <!-- Profile -->
+    <string name="profile_back">Back</string>
+    <string name="profile_edit_name">Edit name</string>
+    <string name="profile_edit_name_hint">Shown instead of your username. Leave it empty to use your username.</string>
+    <string name="profile_member_since">member since %1$s</string>
+    <string name="profile_stat_likes">likes</string>
+    <string name="profile_stat_ratings">ratings</string>
+    <string name="profile_stat_comments">comments</string>
+    <string name="profile_stat_friends">friends</string>
+    <string name="profile_recent_likes">recent likes</string>
+    <string name="profile_no_likes">No likes yet.</string>
 </resources>

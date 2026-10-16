@@ -48,7 +48,7 @@ and hosting in [docs/SERVER_SETUP.md](docs/SERVER_SETUP.md).
 - `domain/repository`: repository contracts for movies, reactions, ratings and auth.
 - `domain/service`: category grouping.
 - `ui/home`: ViewModel, observable screen state, and home rendering.
-- `ui/auth`, `ui/comments`, `ui/details`, `ui/lists`, `ui/matches`, `ui/user`: feature screens.
+- `ui/auth`, `ui/comments`, `ui/details`, `ui/lists`, `ui/matches`, `ui/profile`, `ui/search`: feature screens.
 - `ui/navigation`: drawer sections as Navigation Compose routes.
 - `ui/components`, `ui/theme`, `ui/utils`: shared presentation code.
 

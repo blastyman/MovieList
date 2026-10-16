@@ -61,8 +61,10 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             factory = appContainer.homeViewModelFactory(),
                             commentsFactory = appContainer.commentsViewModelFactory(),
+                            searchFactory = appContainer.searchViewModelFactory(),
+                            profileFactory = appContainer.profileViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
-                            accountUsername = account?.username,
+                            accountId = account?.id,
                             onLogout = { scope.launch { authRepository.logout() } },
                         )
                     }

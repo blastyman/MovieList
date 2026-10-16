@@ -4,8 +4,10 @@ import com.example.movielist.data.model.AccountDto
 import com.example.movielist.data.model.AuthResponse
 import com.example.movielist.data.model.LoginRequest
 import com.example.movielist.data.model.RegisterRequest
+import com.example.movielist.data.model.UpdateMeRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 /** Accounts on our server (backend/). The JWT is attached by [BackendClient], not per call. */
@@ -15,4 +17,6 @@ interface AuthApi {
     @POST("auth/login") suspend fun login(@Body request: LoginRequest): AuthResponse
 
     @GET("me") suspend fun me(): AccountDto
+
+    @PATCH("me") suspend fun updateMe(@Body request: UpdateMeRequest): AccountDto
 }

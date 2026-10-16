@@ -19,5 +19,8 @@ interface AuthRepository {
     /** Reloads the account for a saved session. A rejected token ends the session. */
     suspend fun refreshAccount(): Result<Account>
 
+    /** Sets the name shown instead of the username; blank removes it. */
+    suspend fun updateDisplayName(displayName: String): Result<Account>
+
     suspend fun logout()
 }

@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.movielist.domain.model.AuthError
 import com.example.movielist.domain.model.AuthException
+import com.example.movielist.domain.model.FriendshipState
 import com.example.movielist.domain.model.UserProfile
 import com.example.movielist.domain.repository.AuthRepository
+import com.example.movielist.domain.repository.FriendRepository
 import com.example.movielist.domain.repository.UserRepository
 import com.example.movielist.ui.utils.toUserMessage
 import kotlinx.coroutines.CancellationException
@@ -24,6 +26,10 @@ data class ProfileUiState(
     /** The edit-name dialog is open with this text. */
     val nameDraft: String? = null,
     val isSavingName: Boolean = false,
+    /** A friend action (add, accept, …) is in flight. */
+    val isFriendBusy: Boolean = false,
+    /** Waiting for the user to confirm removing this friend. */
+    val confirmUnfriend: Boolean = false,
     /** Why saving the name failed; shown in the edit dialog, which stays open. */
     val message: String? = null,
 )
@@ -32,6 +38,7 @@ data class ProfileUiState(
 class ProfileViewModel(
     private val users: UserRepository,
     private val auth: AuthRepository,
+    private val friends: FriendRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiStateFlow: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -99,6 +106,58 @@ class ProfileViewModel(
                         }
                     _uiState.update { it.copy(isSavingName = false, message = "Couldn't save your name. $reason") }
                 }
+        }
+    }
+
+    // ───────────── Friendship ─────────────
+
+    fun addFriend() = friendAction { friends.sendRequest(it) }
+
+    fun acceptFriend() = friendAction { friends.accept(it) }
+
+    fun declineFriend() = friendAction { friends.decline(it) }
+
+    fun cancelFriendRequest() = friendAction { friends.cancel(it) }
+
+    fun askUnfriend() {
+        _uiState.update { it.copy(confirmUnfriend = true) }
+    }
+
+    fun cancelUnfriend() {
+        _uiState.update { it.copy(confirmUnfriend = false) }
+    }
+
+    fun confirmUnfriend() {
+        _uiState.update { it.copy(confirmUnfriend = false) }
+        friendAction { friends.remove(it) }
+    }
+
+    /** Runs [call] for the profile's user and shows the new state; the friend count follows. */
+    private fun friendAction(call: suspend (userId: String) -> FriendshipState) {
+        val profile = uiState.profile?.takeIf { !it.isMe } ?: return
+        if (uiState.isFriendBusy) return
+        _uiState.update { it.copy(isFriendBusy = true) }
+        viewModelScope.launch {
+            try {
+                val state = call(profile.id)
+                _uiState.update { current ->
+                    val shown = current.profile ?: return@update current.copy(isFriendBusy = false)
+                    val change = when {
+                        shown.friendship != FriendshipState.FRIENDS && state == FriendshipState.FRIENDS -> 1
+                        shown.friendship == FriendshipState.FRIENDS && state != FriendshipState.FRIENDS -> -1
+                        else -> 0
+                    }
+                    current.copy(
+                        profile = shown.copy(friendship = state, stats = shown.stats.copy(friends = shown.stats.friends + change)),
+                        isFriendBusy = false,
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update { it.copy(isFriendBusy = false, message = "That didn't work. ${exception.toUserMessage()}") }
+                retry()
+            }
         }
     }
 

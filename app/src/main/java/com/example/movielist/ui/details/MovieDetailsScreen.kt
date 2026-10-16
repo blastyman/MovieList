@@ -189,23 +189,25 @@ fun MovieDetailsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = movie.title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color.White,
-        )
+        // Title on the left, the trailer button on the far right, under the poster's edge.
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = movie.title,
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color.White,
+                modifier = Modifier.weight(1f),
+            )
+            if (trailer != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                TrailerButton(onClick = { playingTrailer = true })
+            }
+        }
 
-        // Directly under the title. Fixed height so the overview doesn't jump when the rating
-        // arrives. Shifted up (and the stars left) by the empty margin drawn around each star
-        // icon, so they sit right under the title, aligned with it.
-        Column(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .height(RATING_SECTION_HEIGHT)
-                    .offset(y = (-STAR_ICON_INSET))
-        ) {
-            // Stars on the left, the trailer button on the right; each shows once it has loaded.
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // Directly under the title. The stars' row keeps its height while the rating loads, so
+        // the overview doesn't jump. Shifted up (and the stars left) by the empty margin drawn
+        // around each star icon, so they line up with the title.
+        Column(modifier = Modifier.fillMaxWidth().offset(y = (-STAR_ICON_INSET))) {
+            Box(modifier = Modifier.height(STAR_ROW_HEIGHT)) {
                 if (rating != null) {
                     RatingBar(
                         score = rating.myScore,
@@ -213,13 +215,11 @@ fun MovieDetailsScreen(
                         modifier = Modifier.offset(x = (-STAR_ICON_INSET)),
                     )
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                if (trailer != null) TrailerButton(onClick = { playingTrailer = true })
             }
             if (rating != null) RatingAverage(rating)
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         if (trailer != null && playingTrailer) {
             TrailerDialog(trailer, onDismiss = { playingTrailer = false })
@@ -232,13 +232,14 @@ fun MovieDetailsScreen(
             color = Color.LightGray,
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         footer()
     }
 }
 
-private val RATING_SECTION_HEIGHT = 64.dp
+// The rating bar's star size.
+private val STAR_ROW_HEIGHT = 36.dp
 
 // Material star icons leave ~1/12 of their size empty on each side; 36dp stars → 3dp.
 private val STAR_ICON_INSET = 3.dp

@@ -46,8 +46,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.movielist.R
@@ -79,18 +77,6 @@ fun CommentsSection(
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = stringResource(R.string.comments_title),
-            style =
-                MaterialTheme.typography.headlineSmall.copy(
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Bold,
-                ),
-            color = MovieRed,
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         CommentInput(
             text = state.draft,
             onTextChange = actions::onDraftChange,

@@ -19,7 +19,6 @@
     </plurals>
 
     <!-- Comments -->
-    <string name="comments_title">comments</string>
     <string name="comments_hint">Add a comment…</string>
     <string name="comments_send">Post comment</string>
     <string name="comments_load_more">load older comments</string>
@@ -91,6 +90,20 @@
     <string name="friendship_friends">Friends</string>
     <string name="friendship_request_sent">Request sent</string>
     <string name="friendship_request_received">Wants to be friends</string>
+
+    <!-- Friends -->
+    <string name="friends_empty">No friends yet. Find people with search and add them.</string>
+    <string name="friends_requests">friend requests</string>
+    <string name="friends_sent">sent requests</string>
+    <string name="friends_title">friends (%1$d)</string>
+    <string name="friends_accept">Accept</string>
+    <string name="friends_decline">Decline</string>
+    <string name="friends_cancel_request">Cancel</string>
+    <string name="friends_options">Friend options</string>
+    <string name="friends_remove">Remove friend</string>
+    <string name="friends_remove_title">Remove %1$s from your friends?</string>
+    <string name="friends_add">Add friend</string>
+    <string name="friends_request_sent_cancel">Request sent · Cancel</string>
 
     <!-- Profile -->
     <string name="profile_back">Back</string>

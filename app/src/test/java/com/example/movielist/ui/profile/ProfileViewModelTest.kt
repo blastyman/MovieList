@@ -11,6 +11,7 @@ import com.example.movielist.domain.model.UserProfile
 import com.example.movielist.domain.model.UserSummary
 import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.domain.repository.UserRepository
+import com.example.movielist.ui.friends.FakeFriends
 import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
@@ -80,7 +81,7 @@ class ProfileViewModelTest {
         runTest(dispatcher) {
             var fail = true
             val users = FakeUsers { if (fail) throw IOException("Offline") else profile(isMe = false) }
-            val viewModel = ProfileViewModel(users, FakeAuth(Result.failure(IllegalStateException())))
+            val viewModel = ProfileViewModel(users, FakeAuth(Result.failure(IllegalStateException())), FakeFriends())
 
             viewModel.load("u1")
             advanceUntilIdle()
@@ -100,7 +101,7 @@ class ProfileViewModelTest {
     fun editingTheNameUpdatesTheProfile() =
         runTest(dispatcher) {
             val auth = FakeAuth(Result.success(Account("u1", "stelios", "s@example.com", "Stelios A.", null)))
-            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = true) }, auth)
+            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = true) }, auth, FakeFriends())
             viewModel.load("u1")
             advanceUntilIdle()
 
@@ -119,7 +120,7 @@ class ProfileViewModelTest {
     fun failedNameSaveKeepsTheDialogOpenWithTheReason() =
         runTest(dispatcher) {
             val auth = FakeAuth(Result.failure(AuthException(AuthError.Server("Display name must be at most 50 characters"))))
-            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = true, displayName = "Old") }, auth)
+            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = true, displayName = "Old") }, auth, FakeFriends())
             viewModel.load("u1")
             advanceUntilIdle()
 
@@ -136,11 +137,43 @@ class ProfileViewModelTest {
     @Test
     fun someoneElsesNameCannotBeEdited() =
         runTest(dispatcher) {
-            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = false) }, FakeAuth(Result.failure(IllegalStateException())))
+            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = false) }, FakeAuth(Result.failure(IllegalStateException())), FakeFriends())
             viewModel.load("u1")
             advanceUntilIdle()
 
             viewModel.startEditName()
             assertNull(viewModel.uiState.nameDraft)
+        }
+
+    @Test
+    fun friendshipButtonActionsUpdateTheStateAndFriendCount() =
+        runTest(dispatcher) {
+            val friends = FakeFriends()
+            val viewModel = ProfileViewModel(FakeUsers { profile(isMe = false) }, FakeAuth(Result.failure(IllegalStateException())), friends)
+            viewModel.load("u1")
+            advanceUntilIdle()
+            assertEquals(4, viewModel.uiState.profile?.stats?.friends)
+
+            viewModel.addFriend()
+            advanceUntilIdle()
+            assertEquals(FriendshipState.REQUEST_SENT, viewModel.uiState.profile?.friendship)
+            assertEquals(4, viewModel.uiState.profile?.stats?.friends) // not friends yet
+
+            viewModel.cancelFriendRequest()
+            advanceUntilIdle()
+            assertEquals(FriendshipState.NONE, viewModel.uiState.profile?.friendship)
+
+            friends.states["u1"] = FriendshipState.REQUEST_RECEIVED // they ask us
+            viewModel.acceptFriend()
+            advanceUntilIdle()
+            assertEquals(FriendshipState.FRIENDS, viewModel.uiState.profile?.friendship)
+            assertEquals(5, viewModel.uiState.profile?.stats?.friends)
+
+            viewModel.askUnfriend()
+            assertEquals(true, viewModel.uiState.confirmUnfriend)
+            viewModel.confirmUnfriend()
+            advanceUntilIdle()
+            assertEquals(FriendshipState.NONE, viewModel.uiState.profile?.friendship)
+            assertEquals(4, viewModel.uiState.profile?.stats?.friends)
         }
 }

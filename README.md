@@ -2,8 +2,8 @@
 
 An Android movie discovery app built with Kotlin and Jetpack Compose. Browse
 recommendations and genres, like or dislike movies, watch trailers, rate them with stars and
-comment on them. Accounts, likes, ratings and comments live on our own server;
-friends, chat and groups follow in the thesis plan.
+comment on them, and add friends. Accounts, likes, ratings, comments and friends live on our own server;
+chat and groups follow in the thesis plan.
 
 ## Setup
 
@@ -48,7 +48,7 @@ and hosting in [docs/SERVER_SETUP.md](docs/SERVER_SETUP.md).
 - `domain/repository`: repository contracts for movies, reactions, ratings and auth.
 - `domain/service`: category grouping.
 - `ui/home`: ViewModel, observable screen state, and home rendering.
-- `ui/auth`, `ui/comments`, `ui/details`, `ui/lists`, `ui/matches`, `ui/profile`, `ui/search`: feature screens.
+- `ui/auth`, `ui/comments`, `ui/details`, `ui/friends`, `ui/lists`, `ui/matches`, `ui/profile`, `ui/search`: feature screens.
 - `ui/navigation`: drawer sections as Navigation Compose routes.
 - `ui/components`, `ui/theme`, `ui/utils`: shared presentation code.
 

@@ -40,3 +40,12 @@ data class UserProfile(
 
 /** One page of search results; [hasMore] says whether the next page has anything. */
 data class SearchPage<T>(val items: List<T>, val hasMore: Boolean)
+
+data class FriendRequest(val user: UserSummary, val requestedAt: Instant)
+
+data class FriendRequests(
+    /** Waiting for the signed-in user to answer, newest first. */
+    val incoming: List<FriendRequest>,
+    /** Sent by the signed-in user, newest first. */
+    val outgoing: List<FriendRequest>,
+)

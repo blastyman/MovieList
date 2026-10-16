@@ -43,6 +43,9 @@ import com.example.movielist.ui.matches.MatchesScreen
 import com.example.movielist.ui.navigation.AppDrawer
 import com.example.movielist.ui.navigation.AppSection
 import com.example.movielist.domain.model.MovieCategory
+import com.example.movielist.ui.friends.FriendsScreen
+import com.example.movielist.ui.friends.FriendsViewModel
+import com.example.movielist.ui.profile.ProfileFriendActions
 import com.example.movielist.ui.profile.ProfileScreen
 import com.example.movielist.ui.profile.ProfileViewModel
 import com.example.movielist.ui.search.SearchScreen
@@ -55,6 +58,7 @@ fun HomeScreen(
     commentsFactory: ViewModelProvider.Factory,
     searchFactory: ViewModelProvider.Factory,
     profileFactory: ViewModelProvider.Factory,
+    friendsFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     /** The signed-in account; null until it has loaded. */
     accountId: String?,
@@ -119,6 +123,7 @@ fun HomeScreen(
                             accountId = accountId,
                             searchFactory = searchFactory,
                             profileFactory = profileFactory,
+                            friendsFactory = friendsFactory,
                             onLogout = onLogout,
                             openMenu = openMenu,
                         )
@@ -173,6 +178,7 @@ private fun SectionNavHost(
     accountId: String?,
     searchFactory: ViewModelProvider.Factory,
     profileFactory: ViewModelProvider.Factory,
+    friendsFactory: ViewModelProvider.Factory,
     onLogout: () -> Unit,
     openMenu: () -> Unit,
 ) {
@@ -211,6 +217,22 @@ private fun SectionNavHost(
                 onLoadMore = search::loadMore,
                 onRetry = search::retry,
                 onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.SEARCH, movie) },
+                onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
+                onMenuClick = openMenu,
+            )
+        }
+        composable(AppSection.FRIENDS.route) {
+            val friends: FriendsViewModel = viewModel(factory = friendsFactory)
+            LaunchedEffect(Unit) { friends.load() }
+            FriendsScreen(
+                state = friends.uiStateFlow.collectAsStateWithLifecycle().value,
+                onRetry = friends::load,
+                onAccept = friends::accept,
+                onDecline = friends::decline,
+                onCancel = friends::cancel,
+                onRemove = friends::askRemove,
+                onConfirmRemove = friends::confirmRemove,
+                onCancelRemove = friends::cancelRemove,
                 onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
                 onMenuClick = openMenu,
             )
@@ -288,5 +310,15 @@ private fun ProfileRoute(
         onSaveName = profile::saveName,
         onCancelEditName = profile::cancelEditName,
         onLogout = onLogout,
+        friendActions =
+            ProfileFriendActions(
+                add = profile::addFriend,
+                accept = profile::acceptFriend,
+                decline = profile::declineFriend,
+                cancelRequest = profile::cancelFriendRequest,
+                askUnfriend = profile::askUnfriend,
+                confirmUnfriend = profile::confirmUnfriend,
+                cancelUnfriend = profile::cancelUnfriend,
+            ),
     )
 }

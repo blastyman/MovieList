@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
                             commentsFactory = appContainer.commentsViewModelFactory(),
                             searchFactory = appContainer.searchViewModelFactory(),
                             profileFactory = appContainer.profileViewModelFactory(),
+                            friendsFactory = appContainer.friendsViewModelFactory(),
                             viewModelKey = "home-$loginGeneration",
                             accountId = account?.id,
                             onLogout = { scope.launch { authRepository.logout() } },

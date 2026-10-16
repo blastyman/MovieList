@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,12 +44,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.movielist.R
+import com.example.movielist.domain.model.FriendshipState
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.UserProfile
 import com.example.movielist.ui.components.MoviePosterItem
 import com.example.movielist.ui.components.ScreenHeader
 import com.example.movielist.ui.components.UserAvatar
-import com.example.movielist.ui.search.friendshipLabel
 import com.example.movielist.ui.theme.MovieButton
 import com.example.movielist.ui.theme.MovieRed
 import com.example.movielist.ui.theme.MovieSurface
@@ -69,6 +72,7 @@ fun ProfileScreen(
     onSaveName: () -> Unit,
     onCancelEditName: () -> Unit,
     onLogout: () -> Unit,
+    friendActions: ProfileFriendActions,
 ) {
     Column(
         modifier =
@@ -87,7 +91,7 @@ fun ProfileScreen(
 
         val profile = state.profile
         when {
-            profile != null -> ProfileContent(profile, onMovieClick, onEditName, onLogout)
+            profile != null -> ProfileContent(profile, state, onMovieClick, onEditName, onLogout, friendActions)
             state.error != null ->
                 Column(modifier = Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.error, color = Color.LightGray, textAlign = TextAlign.Center)
@@ -98,6 +102,20 @@ fun ProfileScreen(
                     CircularProgressIndicator()
                 }
         }
+    }
+
+    if (state.confirmUnfriend) {
+        AlertDialog(
+            onDismissRequest = friendActions.cancelUnfriend,
+            title = { Text(stringResource(R.string.friends_remove_title, state.profile?.name.orEmpty())) },
+            confirmButton = {
+                TextButton(onClick = friendActions.confirmUnfriend) {
+                    Text(stringResource(R.string.friends_remove), color = MovieRed)
+                }
+            },
+            dismissButton = { TextButton(onClick = friendActions.cancelUnfriend) { Text(stringResource(R.string.comments_cancel)) } },
+            containerColor = MovieSurface,
+        )
     }
 
     val draft = state.nameDraft
@@ -139,9 +157,11 @@ fun ProfileScreen(
 @Composable
 private fun ProfileContent(
     profile: UserProfile,
+    state: ProfileUiState,
     onMovieClick: (Movie) -> Unit,
     onEditName: () -> Unit,
     onLogout: () -> Unit,
+    friendActions: ProfileFriendActions,
 ) {
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -156,9 +176,11 @@ private fun ProfileContent(
             style = MaterialTheme.typography.bodySmall,
         )
         if (!profile.isMe) {
-            friendshipLabel(profile.friendship)?.let { label ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(label, color = MovieRed, style = MaterialTheme.typography.labelLarge)
+            Spacer(modifier = Modifier.height(14.dp))
+            FriendshipButton(profile.friendship, busy = state.isFriendBusy, actions = friendActions)
+            if (state.message != null && state.nameDraft == null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(state.message, color = MovieRed, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
         }
     }
@@ -220,3 +242,50 @@ private fun Stat(value: Int, label: String) {
 /** e.g. "Oct 2026" in the phone's language. */
 private fun memberSince(profile: UserProfile): String =
     profile.memberSince.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("LLL yyyy"))
+
+/** What the friendship button can do; [ProfileViewModel] provides them. */
+data class ProfileFriendActions(
+    val add: () -> Unit,
+    val accept: () -> Unit,
+    val decline: () -> Unit,
+    val cancelRequest: () -> Unit,
+    val askUnfriend: () -> Unit,
+    val confirmUnfriend: () -> Unit,
+    val cancelUnfriend: () -> Unit,
+)
+
+/** The one thing you can do next with this person, as a button (or two, to answer a request). */
+@Composable
+private fun FriendshipButton(state: FriendshipState, busy: Boolean, actions: ProfileFriendActions) {
+    if (busy) {
+        CircularProgressIndicator(modifier = Modifier.size(32.dp), color = MovieRed)
+        return
+    }
+    when (state) {
+        FriendshipState.NONE ->
+            Button(onClick = actions.add, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
+                Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.friends_add), color = Color.White)
+            }
+        FriendshipState.REQUEST_SENT ->
+            OutlinedButton(onClick = actions.cancelRequest) {
+                Text(stringResource(R.string.friends_request_sent_cancel), color = Color.LightGray)
+            }
+        FriendshipState.REQUEST_RECEIVED ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = actions.accept, colors = ButtonDefaults.buttonColors(containerColor = MovieRed)) {
+                    Text(stringResource(R.string.friends_accept), color = Color.White)
+                }
+                OutlinedButton(onClick = actions.decline) {
+                    Text(stringResource(R.string.friends_decline), color = Color.LightGray)
+                }
+            }
+        FriendshipState.FRIENDS ->
+            OutlinedButton(onClick = actions.askUnfriend) {
+                Icon(Icons.Default.Check, contentDescription = null, tint = MovieRed)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.friendship_friends), color = Color.White)
+            }
+    }
+}

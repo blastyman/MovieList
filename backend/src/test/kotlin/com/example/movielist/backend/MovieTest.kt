@@ -5,6 +5,7 @@ import com.example.movielist.backend.features.auth.AuthResponse
 import com.example.movielist.backend.features.auth.RegisterRequest
 import com.example.movielist.backend.features.movies.MovieDetailsDto
 import com.example.movielist.backend.features.movies.MoviePageDto
+import com.example.movielist.backend.features.movies.TrailerDto
 import com.example.movielist.backend.plugins.AppJson
 import com.example.movielist.backend.plugins.ErrorResponse
 import io.ktor.client.HttpClient
@@ -217,6 +218,56 @@ class MovieTest {
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals("Old title", response.body<MovieDetailsDto>().title)
             assertEquals(1, tmdb.requests.size) // it did try to refresh first
+        }
+    }
+
+    // ───────────── Trailers ─────────────
+
+    private val videosJson = """
+        {"id":550,"results":[
+          {"key":"clip1","name":"Behind the scenes","site":"YouTube","type":"Featurette","official":true,"size":1080},
+          {"key":"teaser1","name":"Teaser","site":"YouTube","type":"Teaser","official":true,"size":1080},
+          {"key":"fan720","name":"Fan trailer","site":"YouTube","type":"Trailer","official":false,"size":1080},
+          {"key":"vimeo1","name":"Trailer on Vimeo","site":"Vimeo","type":"Trailer","official":true,"size":1080},
+          {"key":"old720","name":"Trailer (old)","site":"YouTube","type":"Trailer","official":true,"size":720,"published_at":"2019-01-01T00:00:00.000Z"},
+          {"key":"main1080","name":"Official Trailer","site":"YouTube","type":"Trailer","official":true,"size":1080,"published_at":"2019-06-01T00:00:00.000Z"}
+        ]}
+    """.trimIndent()
+
+    @Test
+    fun `trailers are YouTube trailers and teasers, best first`() {
+        val tmdb = FakeTmdb { json(videosJson) }
+        movieTest(tmdb) { client, token ->
+            val trailers = client.get("/movies/550/trailers") { bearerAuth(token) }.body<List<TrailerDto>>()
+
+            assertEquals(listOf("main1080", "old720", "fan720", "teaser1"), trailers.map { it.youtubeKey })
+            assertEquals("Official Trailer", trailers.first().name)
+            assertEquals("/3/movie/550/videos", tmdb.requests.single().url.encodedPath)
+
+            client.get("/movies/550/trailers") { bearerAuth(token) }
+            assertEquals(1, tmdb.requests.size) // cached
+        }
+    }
+
+    @Test
+    fun `movie without trailers, or unknown to TMDB, has an empty list`() {
+        val tmdb = FakeTmdb { request ->
+            if (request.url.encodedPath.contains("/404/")) json("""{"status_code":34}""", HttpStatusCode.NotFound)
+            else json("""{"id":1,"results":[]}""")
+        }
+        movieTest(tmdb) { client, token ->
+            assertEquals(emptyList(), client.get("/movies/1/trailers") { bearerAuth(token) }.body<List<TrailerDto>>())
+            assertEquals(emptyList(), client.get("/movies/404/trailers") { bearerAuth(token) }.body<List<TrailerDto>>())
+        }
+    }
+
+    @Test
+    fun `trailer errors and validation`() {
+        val tmdb = FakeTmdb { json("{}", HttpStatusCode.ServiceUnavailable) }
+        movieTest(tmdb) { client, token ->
+            assertEquals(HttpStatusCode.Unauthorized, client.get("/movies/550/trailers").status)
+            assertEquals(HttpStatusCode.BadRequest, client.get("/movies/abc/trailers") { bearerAuth(token) }.status)
+            assertEquals(HttpStatusCode.BadGateway, client.get("/movies/550/trailers") { bearerAuth(token) }.status)
         }
     }
 

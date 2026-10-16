@@ -93,3 +93,13 @@ fun MovieDetailsDto.toSummary() = MovieSummaryDto(
     releaseDate = releaseDate,
     voteAverage = voteAverage,
 )
+
+/** A YouTube video of a movie; play it with [youtubeKey] (youtube.com/watch?v=<key>). */
+@Serializable
+data class TrailerDto(
+    val youtubeKey: String,
+    val name: String,
+    /** "Trailer" or "Teaser". */
+    val type: String,
+    val official: Boolean,
+)

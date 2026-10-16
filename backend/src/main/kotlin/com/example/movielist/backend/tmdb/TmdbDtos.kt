@@ -42,3 +42,17 @@ data class TmdbMovieDetails(
 
 @Serializable
 data class TmdbGenre(val id: Int, val name: String)
+
+@Serializable
+data class TmdbVideos(val results: List<TmdbVideo> = emptyList())
+
+@Serializable
+data class TmdbVideo(
+    val key: String,
+    val name: String? = null,
+    val site: String? = null,
+    val type: String? = null,
+    val official: Boolean = false,
+    val size: Int? = null,
+    @SerialName("published_at") val publishedAt: String? = null,
+)

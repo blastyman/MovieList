@@ -68,6 +68,14 @@ class TmdbClient(
             }
         }
 
+    /** Trailers, teasers, clips… of a movie. Empty for an unknown movie id. */
+    suspend fun videos(id: Int): TmdbVideos =
+        try {
+            request { get("movie/$id/videos") }
+        } catch (e: TmdbException) {
+            if (e.status == HttpStatusCode.NotFound) TmdbVideos() else throw e
+        }
+
     /** Returns null when TMDB has no movie with that id. */
     suspend fun movieDetails(id: Int): TmdbMovieDetails? =
         try {

@@ -37,6 +37,9 @@ fun Route.movieRoutes(
                     )
                 )
             }
+            get("/{id}/trailers") {
+                call.respond(movieService.trailers(call.movieIdParameter()))
+            }
             get("/{id}") {
                 val id = call.movieIdParameter()
                 // TMDB data is cached and shared; the social part is per user and always fresh.

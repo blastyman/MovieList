@@ -10,6 +10,7 @@ import com.example.movielist.backend.tmdb.TmdbException
 import com.example.movielist.backend.tmdb.TmdbMovieDetails
 import com.example.movielist.backend.tmdb.TmdbMovieSummary
 import com.example.movielist.backend.tmdb.TmdbPage
+import com.example.movielist.backend.tmdb.TmdbVideo
 import com.example.movielist.backend.util.TtlCache
 import io.ktor.http.HttpStatusCode
 import org.jetbrains.exposed.v1.core.eq
@@ -35,6 +36,29 @@ class MovieService(
     // Lists are identical for every user, so one cached copy serves everybody.
     private val discoverCache = TtlCache<Pair<Int, Int?>, MoviePageDto>(Duration.ofMinutes(10), clock = clock)
     private val searchCache = TtlCache<Pair<String, Int>, MoviePageDto>(Duration.ofMinutes(10), clock = clock)
+    // A movie's trailers rarely change.
+    private val trailerCache = TtlCache<Int, List<TrailerDto>>(Duration.ofHours(6), clock = clock)
+
+    /**
+     * Playable YouTube trailers, best first: trailers before teasers, official before fan
+     * uploads, then the highest resolution and the newest. Clips, featurettes and other sites
+     * are left out. Empty when the movie has none (or TMDB doesn't know it).
+     */
+    suspend fun trailers(id: Int): List<TrailerDto> {
+        if (id <= 0) throw ValidationException("Movie id must be positive")
+        return trailerCache.getOrPut(id) {
+            callTmdb { tmdb.videos(id) }.results
+                .filter { it.site.equals("YouTube", ignoreCase = true) && it.key.isNotBlank() }
+                .filter { it.type == "Trailer" || it.type == "Teaser" }
+                .sortedWith(
+                    compareBy<TmdbVideo> { if (it.type == "Trailer") 0 else 1 }
+                        .thenBy { if (it.official) 0 else 1 }
+                        .thenByDescending { it.size ?: 0 }
+                        .thenByDescending { it.publishedAt.orEmpty() }
+                )
+                .map { TrailerDto(youtubeKey = it.key, name = it.name.orEmpty(), type = it.type!!, official = it.official) }
+        }
+    }
 
     suspend fun discover(page: Int?, genreId: Int?): MoviePageDto {
         val validPage = validatePage(page)

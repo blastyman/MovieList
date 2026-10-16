@@ -6,15 +6,18 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
+import com.example.movielist.data.remote.CommentApi
 import com.example.movielist.data.remote.MovieApi
 import com.example.movielist.data.remote.RatingApi
 import com.example.movielist.data.remote.ReactionApi
 import com.example.movielist.data.repository.BackendAuthRepository
+import com.example.movielist.data.repository.BackendCommentRepository
 import com.example.movielist.data.repository.BackendMovieRepository
 import com.example.movielist.data.repository.BackendRatingRepository
 import com.example.movielist.data.repository.BackendReactionRepository
 import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.ui.auth.AuthViewModel
+import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.home.HomeViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,9 +52,13 @@ class AppContainer(context: Context) {
         BackendReactionRepository(backend.create(ReactionApi::class.java))
     }
     private val ratingRepository by lazy { BackendRatingRepository(backend.create(RatingApi::class.java)) }
+    private val commentRepository by lazy { BackendCommentRepository(backend.create(CommentApi::class.java)) }
 
     fun homeViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { HomeViewModel(movieRepository, reactionRepository, ratingRepository) }
+
+    fun commentsViewModelFactory(): ViewModelProvider.Factory =
+        viewModelFactory { CommentsViewModel(commentRepository) }
 
     fun authViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { AuthViewModel(authRepository) }

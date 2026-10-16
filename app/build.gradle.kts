@@ -34,6 +34,8 @@ android {
         }
     }
     compileOptions {
+        // java.time (Instant, Duration) on Android 7, below its native API 26.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -44,6 +46,7 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     // Android Core
     implementation(libs.androidx.core.ktx)

@@ -21,6 +21,35 @@
         <item quantity="other">%1$d stars</item>
     </plurals>
 
+    <!-- Comments -->
+    <string name="comments_title">comments</string>
+    <string name="comments_hint">Add a comment…</string>
+    <string name="comments_send">Post comment</string>
+    <string name="comments_empty">No comments yet. Start the conversation!</string>
+    <string name="comments_load_more">load older comments</string>
+    <string name="comments_load_error">Couldn\'t load comments. %1$s</string>
+    <string name="comments_edited">edited</string>
+    <string name="comments_just_now">just now</string>
+    <string name="comments_more">Comment options</string>
+    <string name="comments_edit">Edit</string>
+    <string name="comments_delete">Delete</string>
+    <string name="comments_save">Save</string>
+    <string name="comments_cancel">Cancel</string>
+    <string name="comments_delete_title">Delete this comment?</string>
+    <string name="comments_delete_text">It will be removed for everyone, with any replies.</string>
+    <string name="comments_length">%1$d/%2$d</string>
+    <string name="comments_reply">Reply</string>
+    <plurals name="comments_view_replies">
+        <item quantity="one">View %1$d reply</item>
+        <item quantity="other">View %1$d replies</item>
+    </plurals>
+    <string name="comments_hide_replies">Hide replies</string>
+    <string name="comments_more_replies">show more replies</string>
+    <string name="comments_replying_to">Replying to %1$s</string>
+    <string name="comments_reply_hint">Write a reply…</string>
+    <string name="comments_send_reply">Send reply</string>
+    <string name="comments_author_rating">Rated %1$s of 5</string>
+
     <!-- Auth -->
     <string name="auth_welcome_back">welcome back</string>
     <string name="auth_create_account">create your account</string>

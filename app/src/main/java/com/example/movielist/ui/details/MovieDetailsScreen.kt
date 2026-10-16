@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -77,6 +78,8 @@ fun MovieDetailsScreen(
     onLike: () -> Unit,
     onDislike: () -> Unit,
     onRate: (Int?) -> Unit,
+    /** Shown under the overview, e.g. the comments. */
+    footer: @Composable () -> Unit = {},
 ) {
     val latestOnLike by rememberUpdatedState(onLike)
     val latestOnDislike by rememberUpdatedState(onDislike)
@@ -91,6 +94,7 @@ fun MovieDetailsScreen(
         modifier =
             Modifier.fillMaxSize()
                 .statusBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
     ) {
@@ -190,10 +194,15 @@ fun MovieDetailsScreen(
             color = Color.White,
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Fixed height so the overview doesn't jump when the rating arrives.
-        Column(modifier = Modifier.fillMaxWidth().height(RATING_SECTION_HEIGHT)) {
+        // Directly under the title. Fixed height so the overview doesn't jump when the rating
+        // arrives. Shifted up by the empty margin drawn around each star icon (and the stars
+        // left by the same, in RatingSection) so they sit right under the title, aligned with it.
+        Column(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(RATING_SECTION_HEIGHT)
+                    .offset(y = (-STAR_ICON_INSET))
+        ) {
             if (rating != null) RatingSection(rating, onRate)
         }
 
@@ -231,15 +240,22 @@ fun MovieDetailsScreen(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        footer()
     }
 }
 
-private val RATING_SECTION_HEIGHT = 64.dp
+private val RATING_SECTION_HEIGHT = 60.dp
+
+// Material star icons leave ~1/12 of their size empty on each side; 36dp stars → 3dp.
+private val STAR_ICON_INSET = 3.dp
 
 /** Your stars, plus everyone's average converted to the same five-star scale. */
 @Composable
 private fun RatingSection(rating: RatingStats, onRate: (Int?) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.offset(x = (-STAR_ICON_INSET))) {
         RatingBar(score = rating.myScore, onScoreChange = onRate)
 
         Spacer(modifier = Modifier.width(10.dp))

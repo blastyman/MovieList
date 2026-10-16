@@ -41,18 +41,24 @@ fun RatingBar(
     val latestOnScoreChange by rememberUpdatedState(onScoreChange)
     fun choose(newScore: Int) = latestOnScoreChange(if (newScore == currentScore) null else newScore)
 
-    Row(modifier = modifier) {
+    // One touch area for the whole row, split into ten half-star slots by position, so every
+    // point on the bar maps to exactly one half-star.
+    Row(
+        modifier =
+            modifier.pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    val slot = (offset.x / size.width * STARS * 2).toInt().coerceIn(0, STARS * 2 - 1)
+                    choose(slot + 1)
+                }
+            }
+    ) {
         for (star in 1..STARS) {
             val fullScore = star * 2
             val label = pluralStringResource(R.plurals.rating_star, star, star)
             Box(
                 modifier =
                     Modifier.size(starSize)
-                        .pointerInput(star) {
-                            detectTapGestures { offset ->
-                                choose(if (offset.x < size.width / 2) fullScore - 1 else fullScore)
-                            }
-                        }
+                        // For screen readers, each star is its own button (whole stars only).
                         .semantics {
                             role = Role.Button
                             contentDescription = label

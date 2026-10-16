@@ -35,6 +35,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.movielist.R
 import com.example.movielist.domain.model.Reaction
+import com.example.movielist.ui.comments.CommentsSection
+import com.example.movielist.ui.comments.CommentsViewModel
 import com.example.movielist.ui.details.MovieDetailsScreen
 import com.example.movielist.ui.lists.MovieListsScreen
 import com.example.movielist.ui.matches.MatchesScreen
@@ -46,12 +48,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     factory: ViewModelProvider.Factory,
+    commentsFactory: ViewModelProvider.Factory,
     viewModelKey: String,
     accountUsername: String?,
     onLogout: () -> Unit,
 ) {
     val viewModel: HomeViewModel = viewModel(key = viewModelKey, factory = factory)
     val state = viewModel.uiStateFlow.collectAsStateWithLifecycle().value
+    val commentsViewModel: CommentsViewModel =
+        viewModel(key = "$viewModelKey-comments", factory = commentsFactory)
+    val comments = commentsViewModel.uiStateFlow.collectAsStateWithLifecycle().value
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentSection = AppSection.fromRoute(backStackEntry?.destination?.route) ?: AppSection.HOME
@@ -65,6 +71,12 @@ fun HomeScreen(
         state.message?.let {
             snackbarHost.showSnackbar(it)
             viewModel.messageShown()
+        }
+    }
+    LaunchedEffect(comments.message) {
+        comments.message?.let {
+            snackbarHost.showSnackbar(it)
+            commentsViewModel.messageShown()
         }
     }
 
@@ -106,6 +118,7 @@ fun HomeScreen(
                 // Details sit on top of the current section, so the section keeps its scroll
                 // position underneath and like/dislike can step through the category.
                 state.selectedMovie?.let { selection ->
+                    LaunchedEffect(selection.movie.id) { commentsViewModel.show(selection.movie.id) }
                     // The newest back handler wins. Composing this one only while details are
                     // shown puts it after NavHost's, so Back closes details before leaving a section.
                     BackHandler { viewModel.closeDetails() }
@@ -123,6 +136,13 @@ fun HomeScreen(
                             onLike = { viewModel.rateSelectedMovie(liked = true) },
                             onDislike = { viewModel.rateSelectedMovie(liked = false) },
                             onRate = viewModel::setScore,
+                            footer = {
+                                CommentsSection(
+                                    state = comments,
+                                    actions = commentsViewModel,
+                                    myRating = state.selectedRating,
+                                )
+                            },
                         )
                     }
                 }

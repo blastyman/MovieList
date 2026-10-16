@@ -21,6 +21,7 @@ import com.example.movielist.domain.model.SessionState
 import com.example.movielist.ui.auth.AuthScreen
 import com.example.movielist.ui.home.HomeScreen
 import com.example.movielist.ui.theme.MovieListTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -53,10 +54,16 @@ class MainActivity : ComponentActivity() {
                         }
                     SessionState.LoggedOut -> AuthScreen(appContainer.authViewModelFactory())
                     SessionState.LoggedIn -> {
-                        // A saved token has no account loaded yet; if the token was rejected,
-                        // the repository ends the session and this screen switches to login.
+                        // A saved token has no account loaded yet. Keep trying, backing off, if the
+                        // server can't be reached: screens need it to know who "you" are. If the token
+                        // was rejected, the repository ends the session and this screen switches to login.
                         LaunchedEffect(Unit) {
-                            if (account == null) authRepository.refreshAccount()
+                            var wait = ACCOUNT_RETRY_START_MS
+                            while (authRepository.account.value == null) {
+                                if (authRepository.refreshAccount().isSuccess) break
+                                delay(wait)
+                                wait = (wait * 2).coerceAtMost(ACCOUNT_RETRY_MAX_MS)
+                            }
                         }
                         HomeScreen(
                             factory = appContainer.homeViewModelFactory(),
@@ -77,3 +84,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/** Waits between attempts to load the signed-in account while the server is unreachable. */
+private const val ACCOUNT_RETRY_START_MS = 2_000L
+private const val ACCOUNT_RETRY_MAX_MS = 30_000L

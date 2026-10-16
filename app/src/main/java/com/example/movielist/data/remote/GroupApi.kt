@@ -27,6 +27,8 @@ interface GroupApi {
     @POST("groups/{id}/members")
     suspend fun addMember(@Path("id") groupId: String, @Body body: AddMemberRequest): GroupDto
 
+    @DELETE("groups/{id}") suspend fun disband(@Path("id") groupId: String): Response<Unit>
+
     /** 200 with the group when removing someone else; 204 with no body when leaving. */
     @DELETE("groups/{id}/members/{userId}")
     suspend fun removeMember(@Path("id") groupId: String, @Path("userId") userId: String): Response<GroupDto>

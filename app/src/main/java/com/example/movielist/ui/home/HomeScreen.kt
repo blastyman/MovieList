@@ -341,6 +341,7 @@ private fun SectionNavHost(
                         cancelRemove = group::cancelRemove,
                         askLeave = group::askLeave,
                         confirmLeave = { accountId?.let(group::confirmLeave) },
+                        confirmDisband = { accountId?.let(group::confirmDisband) },
                         cancelLeave = group::cancelLeave,
                         startRename = group::startRename,
                         onNameDraftChange = group::onNameDraftChange,

@@ -44,6 +44,11 @@ class FakeGroups(private val me: UserSummary, private val people: (String) -> Us
         groups.remove(groupId)
     }
 
+    override suspend fun disband(groupId: String) {
+        failWith?.let { throw it }
+        groups.remove(groupId)
+    }
+
     override suspend fun matches(groupId: String) = matches[groupId].orEmpty()
 
     private fun update(groupId: String, change: (Group) -> Group): Group {

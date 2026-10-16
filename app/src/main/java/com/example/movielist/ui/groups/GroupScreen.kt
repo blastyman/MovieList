@@ -71,6 +71,7 @@ class GroupActions(
     val cancelRemove: () -> Unit,
     val askLeave: () -> Unit,
     val confirmLeave: () -> Unit,
+    val confirmDisband: () -> Unit,
     val cancelLeave: () -> Unit,
     val startRename: () -> Unit,
     val onNameDraftChange: (String) -> Unit,
@@ -281,7 +282,15 @@ private fun GroupDialogs(group: Group, state: GroupUiState, myId: String?, actio
             title = { Text(stringResource(R.string.group_leave_title, group.name)) },
             text = { Text(stringResource(if (ownerLeaving) R.string.group_leave_owner_text else R.string.group_leave_text)) },
             confirmButton = {
-                TextButton(onClick = actions.confirmLeave) { Text(stringResource(R.string.group_leave), color = MovieRed) }
+                Row {
+                    // Only the owner can disband; for them it sits next to plain leaving.
+                    if (ownerLeaving) {
+                        TextButton(onClick = actions.confirmDisband) {
+                            Text(stringResource(R.string.group_disband), color = MovieRed)
+                        }
+                    }
+                    TextButton(onClick = actions.confirmLeave) { Text(stringResource(R.string.group_leave), color = MovieRed) }
+                }
             },
             dismissButton = { TextButton(onClick = actions.cancelLeave) { Text(stringResource(R.string.comments_cancel)) } },
             containerColor = MovieSurface,

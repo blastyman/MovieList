@@ -23,6 +23,9 @@ interface GroupRepository {
     /** The signed-in user leaves the group. */
     suspend fun leave(groupId: String, myId: String)
 
+    /** Owner only: deletes the group for everyone. */
+    suspend fun disband(groupId: String)
+
     /** Movies every member likes, newest match first. */
     suspend fun matches(groupId: String): List<GroupMatch>
 }

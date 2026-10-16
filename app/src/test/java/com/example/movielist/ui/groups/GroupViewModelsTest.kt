@@ -159,6 +159,23 @@ class GroupViewModelsTest {
         }
 
     @Test
+    fun theOwnerCanDisbandInsteadOfLeaving() =
+        runTest(dispatcher) {
+            val group = groups.create("Club", listOf("1"))
+            val viewModel = GroupViewModel(groups, friends)
+            viewModel.load(group.id)
+            advanceUntilIdle()
+
+            viewModel.askLeave()
+            viewModel.confirmDisband(me.id)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.confirmLeave)
+            assertTrue(viewModel.uiState.left)
+            assertTrue(groups.groups.isEmpty())
+        }
+
+    @Test
     fun aFailedRenameBringsTheOldNameBack() =
         runTest(dispatcher) {
             val group = groups.create("Club", emptyList())

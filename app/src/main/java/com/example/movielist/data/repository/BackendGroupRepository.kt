@@ -34,5 +34,10 @@ class BackendGroupRepository(private val api: GroupApi) : GroupRepository {
         if (!response.isSuccessful) throw HttpException(response)
     }
 
+    override suspend fun disband(groupId: String) {
+        val response = api.disband(groupId)
+        if (!response.isSuccessful) throw HttpException(response)
+    }
+
     override suspend fun matches(groupId: String): List<GroupMatch> = api.matches(groupId).map { it.toGroupMatch() }
 }

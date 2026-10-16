@@ -155,12 +155,17 @@ class GroupViewModel(
         _uiState.update { it.copy(confirmLeave = false) }
     }
 
-    fun confirmLeave(myId: String) {
+    fun confirmLeave(myId: String) = exit(myId) { groups.leave(it, myId) }
+
+    /** Owner only: deletes the group for everyone, then goes back like leaving does. */
+    fun confirmDisband(myId: String) = exit(myId) { groups.disband(it) }
+
+    private fun exit(myId: String, call: suspend (groupId: String) -> Unit) {
         val group = uiState.group ?: return
         _uiState.update { it.copy(confirmLeave = false, busy = it.busy + myId) }
         viewModelScope.launch {
             try {
-                groups.leave(group.id, myId)
+                call(group.id)
                 _uiState.update { it.copy(busy = it.busy - myId, left = true) }
             } catch (exception: CancellationException) {
                 throw exception

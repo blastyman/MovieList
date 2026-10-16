@@ -29,7 +29,9 @@ Phase 6 ✅ (trailers: `/movies/{id}/trailers`, in-app YouTube player with an "O
 Phase 7 ✅ (search for movies and people, public profiles, own profile with display-name editing;
 migration V3 adds trigram indexes for name search) ·
 Phase 8 ✅ (friends: requests with auto-accept of crossed requests, accept/decline/cancel/remove, friends screen,
-friendship button on profiles).
+friendship button on profiles; matches: `GET /matches` lists movies you like that others like too, friends or strangers, ranked by
+likes in common; liking one returns `matchedPeople` so the app shows an "It's a Match!" popup whose person
+opens their profile, to meet people through movies).
 
 ## 1. Required features
 

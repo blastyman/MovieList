@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation.compose)
+    // Android's own emoji picker for the chat
+    implementation(libs.androidx.emoji2.emojipicker)
 
     // Retrofit
     implementation(libs.retrofit)

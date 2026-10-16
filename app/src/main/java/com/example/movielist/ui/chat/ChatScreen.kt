@@ -1,7 +1,11 @@
 package com.example.movielist.ui.chat
 
+import android.view.ContextThemeWrapper
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -24,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,17 +43,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.emoji2.emojipicker.EmojiPickerView
 import com.example.movielist.R
 import com.example.movielist.domain.model.Conversation
 import com.example.movielist.domain.model.ConversationType
@@ -92,28 +109,96 @@ fun ChatScreen(
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-            OutlinedTextField(
-                value = state.draft,
-                onValueChange = onDraftChange,
-                placeholder = { Text(stringResource(R.string.chat_hint)) },
-                enabled = conversation != null,
-                maxLines = 5,
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MovieRed),
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            IconButton(
-                onClick = onSend,
-                enabled = conversation != null && state.draft.isNotBlank(),
-                modifier = Modifier.size(48.dp).background(if (state.draft.isNotBlank()) MovieRed else MovieSurface, RoundedCornerShape(50)),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.chat_send), tint = Color.White)
-            }
-        }
+        Composer(draft = state.draft, enabled = conversation != null, onDraftChange = onDraftChange, onSend = onSend)
     }
 }
+
+/**
+ * The send box, with an emoji button that swaps the keyboard for Android's own emoji picker
+ * (and back). Picked emojis go in at the cursor.
+ */
+@Composable
+private fun Composer(draft: String, enabled: Boolean, onDraftChange: (String) -> Unit, onSend: () -> Unit) {
+    // The field keeps its own cursor; the ViewModel only needs the text.
+    var field by remember { mutableStateOf(TextFieldValue(draft, TextRange(draft.length))) }
+    LaunchedEffect(draft) {
+        if (draft != field.text) field = TextFieldValue(draft, TextRange(draft.length)) // e.g. cleared after sending
+    }
+    var showEmojis by rememberSaveable { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focus = remember { FocusRequester() }
+    // Tapping the text box means "keyboard please": the emojis make way.
+    val fieldTaps = remember { MutableInteractionSource() }
+    LaunchedEffect(fieldTaps) {
+        fieldTaps.interactions.collect { if (it is PressInteraction.Release) showEmojis = false }
+    }
+
+    fun change(value: TextFieldValue) {
+        field = value
+        onDraftChange(value.text)
+    }
+
+    BackHandler(enabled = showEmojis) { showEmojis = false }
+
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+        IconButton(
+            onClick = {
+                if (showEmojis) {
+                    showEmojis = false
+                    focus.requestFocus()
+                    keyboard?.show()
+                } else {
+                    keyboard?.hide()
+                    showEmojis = true
+                }
+            },
+            enabled = enabled,
+        ) {
+            Icon(
+                if (showEmojis) Icons.Default.Keyboard else Icons.Outlined.EmojiEmotions,
+                contentDescription = stringResource(if (showEmojis) R.string.chat_keyboard else R.string.chat_emojis),
+                tint = if (showEmojis) MovieRed else Color.Gray,
+            )
+        }
+        OutlinedTextField(
+            value = field,
+            onValueChange = ::change,
+            placeholder = { Text(stringResource(R.string.chat_hint)) },
+            enabled = enabled,
+            maxLines = 5,
+            shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MovieRed),
+            interactionSource = fieldTaps,
+            modifier = Modifier.weight(1f).focusRequester(focus),
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        IconButton(
+            onClick = onSend,
+            enabled = enabled && draft.isNotBlank(),
+            modifier = Modifier.size(48.dp).background(if (draft.isNotBlank()) MovieRed else MovieSurface, RoundedCornerShape(50)),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.chat_send), tint = Color.White)
+        }
+    }
+
+    if (showEmojis) {
+        AndroidView(
+            factory = { context ->
+                // The picker is a classic View; a dark theme makes it match the app.
+                EmojiPickerView(ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault)).apply {
+                    setOnEmojiPickedListener { item ->
+                        val selection = field.selection
+                        val text = field.text.replaceRange(selection.min, selection.max, item.emoji)
+                        change(TextFieldValue(text, TextRange(selection.min + item.emoji.length)))
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(EMOJI_PANEL_HEIGHT).padding(top = 8.dp),
+        )
+    }
+}
+
+private val EMOJI_PANEL_HEIGHT = 300.dp
 
 @Composable
 private fun TopBar(

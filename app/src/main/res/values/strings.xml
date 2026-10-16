@@ -70,6 +70,8 @@
     <string name="chat_you">You: %1$s</string>
     <string name="chat_hint">Message…</string>
     <string name="chat_send">Send</string>
+    <string name="chat_emojis">Emojis</string>
+    <string name="chat_keyboard">Keyboard</string>
     <string name="chat_typing_one">%1$s is typing…</string>
     <string name="chat_typing_many">Several people are typing…</string>
     <string name="chat_failed">Not sent · tap to retry</string>

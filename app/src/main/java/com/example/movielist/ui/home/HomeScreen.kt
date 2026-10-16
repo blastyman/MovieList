@@ -358,7 +358,7 @@ private fun SectionNavHost(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { movie -> viewModel.selectMovie(MovieCategory.MATCH, movie) },
                 onPersonClick = { person -> navController.navigate(profileRoute(person.id)) },
-                onOpenChat = { group -> navController.navigate(chatRoute(group.conversationId)) },
+                onOpenChat = { group -> navController.navigateOrBack(CHAT_ROUTE, CHAT_ID, group.conversationId, chatRoute(group.conversationId)) },
             )
         }
         composable(AppSection.CHATS.route) {
@@ -396,7 +396,7 @@ private fun SectionNavHost(
                 onMenuClick = null,
                 onBack = { navController.popBackStack() },
                 onLogout = onLogout,
-                onMessage = { id -> navController.navigate(directChatRoute(id)) },
+                onMessage = { id -> navController.navigateOrBack(DIRECT_CHAT_ROUTE, CHAT_USER_ID, id, directChatRoute(id)) },
             )
         }
     }
@@ -469,8 +469,12 @@ private fun ChatRoute(
         onBack = { navController.popBackStack() },
         onTitleClick = { conversation ->
             // The group's screen, or the other person's profile.
-            val route = conversation.groupId?.let(::groupRoute) ?: conversation.members.firstOrNull()?.id?.let(::profileRoute)
-            route?.let { navController.navigate(it) }
+            val groupId = conversation.groupId
+            val otherId = conversation.members.firstOrNull()?.id
+            when {
+                groupId != null -> navController.navigateOrBack(GROUP_ROUTE, GROUP_ID, groupId, groupRoute(groupId))
+                otherId != null -> navController.navigateOrBack(PROFILE_ROUTE, PROFILE_USER_ID, otherId, profileRoute(otherId))
+            }
         },
         onRetry = chat::retry,
         onLoadOlder = chat::loadOlder,
@@ -478,6 +482,17 @@ private fun ChatRoute(
         onSend = chat::send,
         onRetrySend = chat::retrySend,
     )
+}
+
+/**
+ * Opens [route], unless that very screen is the one right underneath: then it goes back to it.
+ * Without this, group → chat → group info → chat … would stack a new copy each time, and back
+ * would walk through all of them.
+ */
+private fun NavHostController.navigateOrBack(pattern: String, argName: String, argValue: String, route: String) {
+    val previous = previousBackStackEntry
+    if (previous?.destination?.route == pattern && previous.arguments?.getString(argName) == argValue) popBackStack()
+    else navigate(route)
 }
 
 /** Shows [message] in the shared snackbar once, then tells the screen it was shown. */

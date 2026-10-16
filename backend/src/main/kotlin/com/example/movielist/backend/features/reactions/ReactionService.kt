@@ -4,6 +4,7 @@ import com.example.movielist.backend.db.MovieReactions
 import com.example.movielist.backend.db.MoviesCache
 import com.example.movielist.backend.db.Reaction
 import com.example.movielist.backend.db.query
+import com.example.movielist.backend.features.groups.GroupService
 import com.example.movielist.backend.features.matches.MatchService
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.toSummary
@@ -30,6 +31,7 @@ class ReactionService(
     private val db: Database,
     private val movies: MovieService,
     private val matches: MatchService,
+    private val groups: GroupService,
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
@@ -51,7 +53,7 @@ class ReactionService(
         }
         if (reaction != Reaction.LIKE) return ReactionDto(movieId, reaction)
         val matched = matches.peopleWhoLike(userId, movieId)
-        return ReactionDto(movieId, reaction, matched.people, matched.count)
+        return ReactionDto(movieId, reaction, matched.people, matched.count, groups.groupsCompletedBy(userId, movieId))
     }
 
     suspend fun removeReaction(userId: UUID, movieId: Int) {

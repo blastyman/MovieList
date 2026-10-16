@@ -1,44 +1,20 @@
 package com.example.movielist.backend
 
 import com.example.movielist.backend.db.Reaction
-import com.example.movielist.backend.features.friends.FriendRequestBody
 import com.example.movielist.backend.features.matches.MatchDto
 import com.example.movielist.backend.features.matches.MatchService
-import com.example.movielist.backend.features.reactions.ReactionDto
-import com.example.movielist.backend.features.reactions.SetReactionRequest
 import com.example.movielist.backend.features.users.FriendshipState
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
-import io.ktor.client.request.post
-import io.ktor.client.request.put
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class MatchTest {
-
-    private suspend fun HttpClient.react(user: TestUser, movieId: Int, reaction: Reaction = Reaction.LIKE): ReactionDto =
-        put("/movies/$movieId/reaction") {
-            bearerAuth(user.token)
-            contentType(ContentType.Application.Json)
-            setBody(SetReactionRequest(reaction))
-        }.body()
-
-    private suspend fun HttpClient.befriend(a: TestUser, b: TestUser) {
-        post("/friends/requests") {
-            bearerAuth(a.token)
-            contentType(ContentType.Application.Json)
-            setBody(FriendRequestBody(b.id))
-        }
-        post("/friends/requests/${a.id}/accept") { bearerAuth(b.token) }
-    }
 
     private suspend fun HttpClient.matches(user: TestUser): List<MatchDto> =
         get("/matches") { bearerAuth(user.token) }.body()

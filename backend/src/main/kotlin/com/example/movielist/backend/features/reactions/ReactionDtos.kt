@@ -2,6 +2,7 @@ package com.example.movielist.backend.features.reactions
 
 import com.example.movielist.backend.db.Reaction
 import com.example.movielist.backend.features.movies.MovieSummaryDto
+import com.example.movielist.backend.features.groups.GroupBriefDto
 import com.example.movielist.backend.features.matches.MatchPersonDto
 import kotlinx.serialization.Serializable
 
@@ -16,6 +17,8 @@ data class ReactionDto(
     val matchedPeople: List<MatchPersonDto> = emptyList(),
     /** Everyone else who likes it, including those cut from [matchedPeople]. */
     val matchedCount: Int = 0,
+    /** For a like: your groups in which everyone now likes this movie. */
+    val completedGroups: List<GroupBriefDto> = emptyList(),
 )
 
 /** Every movie the user reacted to, as ids only. Small enough to load at start-up. */

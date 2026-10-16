@@ -28,4 +28,12 @@ object TestDatabase {
         jwtSecret = "test-secret",
         tmdbToken = "",
     )
+
+    /** Runs a `SELECT count(*) …` straight on the database, for checking rows the API doesn't show. */
+    fun count(sql: String): Int =
+        dataSource.connection.use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeQuery(sql).use { result -> result.next(); result.getInt(1) }
+            }
+        }
 }

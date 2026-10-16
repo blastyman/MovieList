@@ -362,16 +362,18 @@ rate limiting, block/report users, offline cache with Room.
 
 ## 7. Business rules & edge cases (checklist)
 
-- [ ] Usernames unique case-insensitively; password ≥ 8 chars
-- [ ] Can't friend yourself; no duplicate requests in either direction
-- [ ] Only friends can be invited to a group or start a direct chat
-- [ ] Group size ≤ 10 including owner — enforced on the server, **inside a transaction** (two simultaneous invites must not produce 11)
-- [ ] Removing a friend does not remove them from shared groups (document the choice)
-- [ ] Only conversation members can read/send messages (check on every REST call and WS frame)
-- [ ] Only the author can edit/delete a comment
-- [ ] One rating and one reaction per user per movie (DB primary key + upsert)
-- [ ] Input length limits on messages, comments, names; reject empty/whitespace
-- [ ] Every list endpoint is paginated
+- [x] Usernames unique case-insensitively; password ≥ 8 chars — unique index on `lower(username)` (SchemaTest, AuthTest)
+- [x] Can't friend yourself; no duplicate requests in either direction — CHECK + pair index, crossed requests auto-accept (SchemaTest, FriendTest)
+- [x] Only friends can be invited to a group or start a direct chat (GroupTest, ChatTest)
+- [x] Group size ≤ 10 including owner — checked after `SELECT … FOR UPDATE` on the group row, so racing adds queue up (GroupTest: "two invites racing for the last spot")
+- [x] Removing a friend does not remove them from shared groups — the group is its own thing once formed; a direct chat becomes read-only instead (GroupTest, ChatTest)
+- [x] Only conversation members can read/send messages — every REST call and every WS frame; outsiders get 404 (ChatTest)
+- [x] Only the author can edit/delete a comment (CommentTest)
+- [x] One rating and one reaction per user per movie — primary key + upsert (SocialTest)
+- [x] Input length limits on messages, comments, names; reject empty/whitespace (ChatTest, CommentTest, GroupTest, AuthTest)
+- [~] Every list endpoint is paginated — the ones that grow without bound are (movies, search, people search, comments,
+  replies, reaction lists, chat history). Friends, groups, chats and matches come back whole: they're personal lists that
+  stay small for one user, and the screens show all of them at once. Paging them is the next step if that changes.
 
 ## 8. Security
 

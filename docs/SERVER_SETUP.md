@@ -187,6 +187,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      APP_ENV: production   # every variable below is then required; no dev fallbacks
       DB_URL: jdbc:postgresql://postgres:5432/movielist
       DB_USER: movielist
       DB_PASSWORD: ${DB_PASSWORD}

@@ -1,5 +1,7 @@
 package com.example.movielist.ui.groups
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,16 +20,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -51,6 +58,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.movielist.R
 import com.example.movielist.domain.model.Group
 import com.example.movielist.domain.model.Movie
@@ -279,28 +287,7 @@ private fun GroupDialogs(group: Group, state: GroupUiState, myId: String?, actio
         )
     }
 
-    if (state.confirmLeave) {
-        // The owner is told what happens to the group without them.
-        val ownerLeaving = group.isOwner(myId)
-        AlertDialog(
-            onDismissRequest = actions.cancelLeave,
-            title = { Text(stringResource(R.string.group_leave_title, group.name)) },
-            text = { Text(stringResource(if (ownerLeaving) R.string.group_leave_owner_text else R.string.group_leave_text)) },
-            confirmButton = {
-                Row {
-                    // Only the owner can disband; for them it sits next to plain leaving.
-                    if (ownerLeaving) {
-                        TextButton(onClick = actions.confirmDisband) {
-                            Text(stringResource(R.string.group_disband), color = MovieRed)
-                        }
-                    }
-                    TextButton(onClick = actions.confirmLeave) { Text(stringResource(R.string.group_leave), color = MovieRed) }
-                }
-            },
-            dismissButton = { TextButton(onClick = actions.cancelLeave) { Text(stringResource(R.string.comments_cancel)) } },
-            containerColor = MovieSurface,
-        )
-    }
+    if (state.confirmLeave) LeaveDialog(group, ownerLeaving = group.isOwner(myId), actions)
 
     state.nameDraft?.let { draft ->
         AlertDialog(
@@ -365,5 +352,74 @@ private fun GroupDialogs(group: Group, state: GroupUiState, myId: String?, actio
             confirmButton = { TextButton(onClick = actions.stopAdding) { Text(stringResource(R.string.done), color = MovieRed) } },
             containerColor = MovieSurface,
         )
+    }
+}
+
+/**
+ * Leaving, as a small sheet: the group's icon and what happens, then one full-width button
+ * per choice. The owner also gets "Disband", in red as the one that can't be undone.
+ */
+@Composable
+private fun LeaveDialog(group: Group, ownerLeaving: Boolean, actions: GroupActions) {
+    Dialog(onDismissRequest = actions.cancelLeave) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MovieSurface),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 16.dp),
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(64.dp).background(MovieRed.copy(alpha = 0.15f), CircleShape),
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MovieRed, modifier = Modifier.size(30.dp))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    stringResource(R.string.group_leave_title, group.name),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    stringResource(if (ownerLeaving) R.string.group_leave_owner_text else R.string.group_leave_text),
+                    color = Color.LightGray,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+
+                OutlinedButton(
+                    onClick = actions.confirmLeave,
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, Color.Gray),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                ) {
+                    Text(stringResource(R.string.group_leave), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                }
+                if (ownerLeaving) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = actions.confirmDisband,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = MovieRed),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                    ) {
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.group_disband), color = Color.White, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                TextButton(onClick = actions.cancelLeave, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.comments_cancel), color = Color.Gray)
+                }
+            }
+        }
     }
 }

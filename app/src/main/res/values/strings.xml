@@ -57,7 +57,7 @@
     <string name="group_leave">Leave group</string>
     <string name="group_leave_title">Leave %1$s?</string>
     <string name="group_leave_text">Someone in the group can add you again later.</string>
-    <string name="group_leave_owner_text">You\'re the owner. Leave, and the member who joined first takes over; or disband the group to delete it, and its movies and chat, for everyone.</string>
+    <string name="group_leave_owner_text">You own this group. Leave and the member who joined first takes over, or disband it to delete it for everyone.</string>
     <string name="group_disband">Disband group</string>
     <string name="group_rename">Rename group</string>
     <string name="group_matches">movies you all like</string>

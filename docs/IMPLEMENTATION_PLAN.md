@@ -22,7 +22,9 @@ server. The phone becomes a client of **our** API; it should no longer talk to T
 **Progress:** Phase 1 ✅ · Phase 2 ✅ (backend auth + login/register screens, logout in the user screen) ·
 Phase 3 ✅ (movies via `/movies/*` on the backend, TMDB token out of the app, Navigation Compose) ·
 Phase 4 ✅ (likes/dislikes and 1–10 ratings per account on the server; demo users and local matches removed —
-matches return with friend groups in Phase 9).
+matches return with friend groups in Phase 9) ·
+Phase 5 ✅ (comments under movies: newest first with "load older", author-only edit and soft delete,
+one level of replies with @mentions — migration V2 adds `comments.parent_id`).
 
 ## 1. Required features
 

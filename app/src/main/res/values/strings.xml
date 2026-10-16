@@ -10,7 +10,6 @@
     <string name="recommended_for_you">recommended for you</string>
 
     <!-- Ratings -->
-    <string name="rating_your">your rating</string>
     <string name="rating_none">No ratings yet. Be the first!</string>
     <plurals name="rating_average">
         <item quantity="one">%1$s average · %2$d rating</item>
@@ -49,6 +48,12 @@
     <string name="comments_reply_hint">Write a reply…</string>
     <string name="comments_send_reply">Send reply</string>
     <string name="comments_author_rating">Rated %1$s of 5</string>
+
+    <!-- Trailers -->
+    <string name="trailer_watch">watch trailer</string>
+    <string name="trailer_close">Close</string>
+    <string name="trailer_open_youtube">Open in YouTube</string>
+    <string name="trailer_error">This trailer can\'t play inside the app.</string>
 
     <!-- Auth -->
     <string name="auth_welcome_back">welcome back</string>

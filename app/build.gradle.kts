@@ -73,6 +73,9 @@ dependencies {
     // Coil (movie posters)
     implementation(libs.coil.compose)
 
+    // Trailers (YouTube player in a WebView)
+    implementation(libs.android.youtube.player)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 

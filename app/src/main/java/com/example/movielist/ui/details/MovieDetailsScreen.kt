@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material3.ButtonDefaults
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import com.example.movielist.R
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.RatingStats
+import com.example.movielist.domain.model.Trailer
 import com.example.movielist.ui.components.AnimatedIconButton
 import com.example.movielist.ui.components.MovieImage
 import com.example.movielist.ui.components.RatingBar
@@ -74,6 +76,8 @@ fun MovieDetailsScreen(
     isDisliked: Boolean,
     /** Null while loading, or if it couldn't be loaded: the rating section is then hidden. */
     rating: RatingStats?,
+    /** Best trailer; no button while it loads or when there is none. */
+    trailer: Trailer?,
     onBack: () -> Unit,
     onLike: () -> Unit,
     onDislike: () -> Unit,
@@ -84,6 +88,7 @@ fun MovieDetailsScreen(
     val latestOnLike by rememberUpdatedState(onLike)
     val latestOnDislike by rememberUpdatedState(onDislike)
     var expanded by remember(movie.id) { mutableStateOf(false) }
+    var playingTrailer by remember(movie.id) { mutableStateOf(false) }
     var dragOffset by remember(movie.id) { mutableFloatStateOf(0f) }
 
     val shortText = shortOverview(movie.overview)
@@ -195,18 +200,34 @@ fun MovieDetailsScreen(
         )
 
         // Directly under the title. Fixed height so the overview doesn't jump when the rating
-        // arrives. Shifted up by the empty margin drawn around each star icon (and the stars
-        // left by the same, in RatingSection) so they sit right under the title, aligned with it.
+        // arrives. Shifted up (and the stars left) by the empty margin drawn around each star
+        // icon, so they sit right under the title, aligned with it.
         Column(
             modifier =
                 Modifier.fillMaxWidth()
                     .height(RATING_SECTION_HEIGHT)
                     .offset(y = (-STAR_ICON_INSET))
         ) {
-            if (rating != null) RatingSection(rating, onRate)
+            // Stars on the left, the trailer button on the right; each shows once it has loaded.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (rating != null) {
+                    RatingBar(
+                        score = rating.myScore,
+                        onScoreChange = onRate,
+                        modifier = Modifier.offset(x = (-STAR_ICON_INSET)),
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                if (trailer != null) TrailerButton(onClick = { playingTrailer = true })
+            }
+            if (rating != null) RatingAverage(rating)
         }
 
         Spacer(modifier = Modifier.height(10.dp))
+
+        if (trailer != null && playingTrailer) {
+            TrailerDialog(trailer, onDismiss = { playingTrailer = false })
+        }
 
         Text(
             text =
@@ -247,28 +268,28 @@ fun MovieDetailsScreen(
     }
 }
 
-private val RATING_SECTION_HEIGHT = 60.dp
+private val RATING_SECTION_HEIGHT = 64.dp
 
 // Material star icons leave ~1/12 of their size empty on each side; 36dp stars → 3dp.
 private val STAR_ICON_INSET = 3.dp
 
-/** Your stars, plus everyone's average converted to the same five-star scale. */
 @Composable
-private fun RatingSection(rating: RatingStats, onRate: (Int?) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.offset(x = (-STAR_ICON_INSET))) {
-        RatingBar(score = rating.myScore, onScoreChange = onRate)
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        Text(
-            text = stringResource(R.string.rating_your),
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Gray,
-        )
+private fun TrailerButton(onClick: () -> Unit) {
+    TextButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        colors = ButtonDefaults.textButtonColors(containerColor = MovieButton),
+        contentPadding = PaddingValues(start = 10.dp, end = 16.dp),
+    ) {
+        Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MovieRed)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = stringResource(R.string.trailer_watch), color = Color.White)
     }
+}
 
-    Spacer(modifier = Modifier.height(4.dp))
-
+/** Everyone's average, converted to the same five-star scale as the stars. */
+@Composable
+private fun RatingAverage(rating: RatingStats) {
     val average = rating.average
     Text(
         text =

@@ -4,11 +4,13 @@ import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.model.RatingStats
 import com.example.movielist.domain.model.Reaction
+import com.example.movielist.domain.model.Trailer
 import com.example.movielist.domain.repository.InMemoryRatingRepository
 import com.example.movielist.domain.repository.InMemoryReactionRepository
 import com.example.movielist.domain.repository.MovieRepository
 import com.example.movielist.domain.repository.RatingRepository
 import com.example.movielist.domain.repository.ReactionRepository
+import com.example.movielist.domain.repository.TrailerRepository
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -250,6 +252,49 @@ class HomeViewModelTest {
 
             assertEquals(RatingStats(6.0, 2, null), viewModel.uiState.selectedRating)
             assertTrue(viewModel.uiState.message.orEmpty().startsWith("Couldn't save your rating."))
+        }
+
+    @Test
+    fun trailerFollowsTheMovieShownInDetails() =
+        runTest(dispatcher) {
+            val trailers = TrailerRepository { id ->
+                if (id == movies[2].id) emptyList() else listOf(Trailer("key$id", "Trailer $id"), Trailer("other", "Teaser"))
+            }
+            val viewModel = HomeViewModel(MovieRepository { movies }, trailers = trailers)
+            advanceUntilIdle()
+
+            viewModel.selectMovie(MovieCategory.POPULAR, movies[0])
+            assertNull(viewModel.uiState.selectedTrailer) // loading
+            advanceUntilIdle()
+            assertEquals("key1", viewModel.uiState.selectedTrailer?.youtubeKey) // the best one
+
+            viewModel.rateSelectedMovie(liked = true) // moves on to movies[1]
+            advanceUntilIdle()
+            assertEquals("key2", viewModel.uiState.selectedTrailer?.youtubeKey)
+
+            viewModel.rateSelectedMovie(liked = true) // movies[2] has none
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.selectedTrailer)
+
+            viewModel.selectMovie(MovieCategory.POPULAR, movies[0])
+            advanceUntilIdle()
+            viewModel.closeDetails()
+            assertNull(viewModel.uiState.selectedTrailer)
+        }
+
+    @Test
+    fun failedTrailerLoadJustMeansNoTrailer() =
+        runTest(dispatcher) {
+            val viewModel =
+                HomeViewModel(MovieRepository { movies }, trailers = TrailerRepository { throw IOException("Offline") })
+            advanceUntilIdle()
+
+            viewModel.selectMovie(MovieCategory.POPULAR, movies[0])
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.selectedTrailer)
+            assertNull(viewModel.uiState.message)
+            assertNotNull(viewModel.uiState.selectedRating) // the rest of details still loads
         }
 
     @Test

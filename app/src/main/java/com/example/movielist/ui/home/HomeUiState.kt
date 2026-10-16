@@ -4,6 +4,7 @@ import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.model.RatingStats
 import com.example.movielist.domain.model.Reaction
+import com.example.movielist.domain.model.Trailer
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
 
@@ -21,6 +22,8 @@ data class HomeUiState(
     val selectedMovie: SelectedMovieState? = null,
     /** Rating of [selectedMovie]; null while it loads. */
     val selectedRating: RatingStats? = null,
+    /** Best trailer of [selectedMovie]; null while loading or if it has none. */
+    val selectedTrailer: Trailer? = null,
     val listFilter: MovieListFilter = MovieListFilter.LIKED,
     /** A save that failed and was undone. Shown once, then cleared with [HomeViewModel.messageShown]. */
     val message: String? = null,

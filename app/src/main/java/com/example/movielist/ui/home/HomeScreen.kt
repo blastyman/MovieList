@@ -132,6 +132,7 @@ fun HomeScreen(
                             isLiked = state.reactionTo(selection.movie.id) == Reaction.LIKE,
                             isDisliked = state.reactionTo(selection.movie.id) == Reaction.DISLIKE,
                             rating = state.selectedRating,
+                            trailer = state.selectedTrailer,
                             onBack = viewModel::closeDetails,
                             onLike = { viewModel.rateSelectedMovie(liked = true) },
                             onDislike = { viewModel.rateSelectedMovie(liked = false) },

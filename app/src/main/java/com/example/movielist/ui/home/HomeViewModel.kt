@@ -11,6 +11,7 @@ import com.example.movielist.domain.repository.InMemoryReactionRepository
 import com.example.movielist.domain.repository.MovieRepository
 import com.example.movielist.domain.repository.RatingRepository
 import com.example.movielist.domain.repository.ReactionRepository
+import com.example.movielist.domain.repository.TrailerRepository
 import com.example.movielist.domain.service.MovieCatalog
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
@@ -31,6 +32,7 @@ class HomeViewModel(
     private val repository: MovieRepository,
     private val reactions: ReactionRepository = InMemoryReactionRepository(),
     private val ratings: RatingRepository = InMemoryRatingRepository(),
+    private val trailers: TrailerRepository = TrailerRepository { emptyList() },
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiStateFlow: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -41,6 +43,9 @@ class HomeViewModel(
 
     /** Loads the stars for the movie in details. Cancelled when another movie is shown; saves never are. */
     private var statsJob: Job? = null
+
+    /** Loads the trailer for the movie in details; cancelled when another movie is shown. */
+    private var trailerJob: Job? = null
 
     /** Saves go out one at a time, in order, so a quick like-then-dislike ends as a dislike. */
     private val saveMutex = Mutex()
@@ -100,11 +105,13 @@ class HomeViewModel(
             )
         }
         loadRating(movie.id)
+        loadTrailer(movie.id)
     }
 
     fun closeDetails() {
         statsJob?.cancel()
-        _uiState.update { it.copy(selectedMovie = null, selectedRating = null) }
+        trailerJob?.cancel()
+        _uiState.update { it.copy(selectedMovie = null, selectedRating = null, selectedTrailer = null) }
     }
 
     fun messageShown() {
@@ -144,6 +151,25 @@ class HomeViewModel(
                 }
             }
         }
+    }
+
+    /** The best trailer, if any. A failure just means no trailer button. */
+    private fun loadTrailer(movieId: Int) {
+        trailerJob?.cancel()
+        _uiState.update { it.copy(selectedTrailer = null) }
+        trailerJob =
+            viewModelScope.launch {
+                try {
+                    val best = trailers.trailers(movieId).firstOrNull()
+                    _uiState.update {
+                        if (it.selectedMovie?.movie?.id == movieId) it.copy(selectedTrailer = best) else it
+                    }
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    // No trailer button; everything else keeps working.
+                }
+            }
     }
 
     private fun loadRating(movieId: Int) {
@@ -225,6 +251,9 @@ class HomeViewModel(
                     },
             )
         }
-        if (showDetails) loadRating(movies[nextIndex].id)
+        if (showDetails) {
+            loadRating(movies[nextIndex].id)
+            loadTrailer(movies[nextIndex].id)
+        }
     }
 }

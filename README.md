@@ -1,7 +1,7 @@
 # MovieList
 
 An Android movie discovery app built with Kotlin and Jetpack Compose. Browse
-recommendations and genres, like or dislike movies, rate them with stars and
+recommendations and genres, like or dislike movies, watch trailers, rate them with stars and
 comment on them. Accounts, likes, ratings and comments live on our own server;
 friends, chat and groups follow in the thesis plan.
 

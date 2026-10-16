@@ -194,6 +194,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       TMDB_TOKEN: ${TMDB_TOKEN}
       PORT: 8080
+      UPLOAD_DIR: /data/avatars
+    volumes:
+      - avatars:/data/avatars   # profile pictures survive rebuilds; back this up with the database
     # no ports: — only Caddy reaches it
 
   caddy:
@@ -211,6 +214,7 @@ services:
 
 volumes:
   pgdata:
+  avatars:
   caddy_data:
   caddy_config:
 ```

@@ -40,7 +40,10 @@ Phase 10 ✅ (chat: one-to-one with friends and one chat per group; REST history
 `last_read_at`, and a `/ws` WebSocket that saves each message, then pushes it to the members online. The JWT goes in the
 handshake's Authorization header rather than `?token=` so it never lands in URLs or logs. Migration V4 adds one
 direct chat per pair. App: chats list with unread badges, chat screen with optimistic bubbles (clientId), paging,
-typing indicator and an HTTP fallback when the socket is down; "Message" on a friend's profile, a chat button on groups).
+typing indicator and an HTTP fallback when the socket is down; "Message" on a friend's profile, a chat button on groups) ·
+Settings ✅ (migration V5: profile photo upload or emoji-on-colour avatar shown everywhere, change name, @handle, email
+and password, delete account; privacy: show me in matches, private likes, who can send friend requests, who can
+message me — all enforced on the server; app settings on the phone: swipe direction, trailer autoplay, match popups).
 
 ## 1. Required features
 

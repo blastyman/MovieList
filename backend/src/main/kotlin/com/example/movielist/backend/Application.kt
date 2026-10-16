@@ -9,6 +9,10 @@ import com.example.movielist.backend.features.auth.authRoutes
 import com.example.movielist.backend.features.health.healthRoutes
 import com.example.movielist.backend.features.movies.MovieService
 import com.example.movielist.backend.features.movies.movieRoutes
+import com.example.movielist.backend.features.ratings.RatingService
+import com.example.movielist.backend.features.ratings.ratingRoutes
+import com.example.movielist.backend.features.reactions.ReactionService
+import com.example.movielist.backend.features.reactions.reactionRoutes
 import com.example.movielist.backend.features.users.UserRepository
 import com.example.movielist.backend.plugins.configureMonitoring
 import com.example.movielist.backend.plugins.configureSecurity
@@ -55,6 +59,8 @@ fun Application.module(
     val tmdbClient = TmdbClient(tmdbEngine, config.tmdbToken)
     monitor.subscribe(ApplicationStopped) { tmdbClient.close() }
     val movieService = MovieService(tmdbClient, database)
+    val reactionService = ReactionService(database, movieService)
+    val ratingService = RatingService(database, movieService)
 
     configureSerialization()
     configureStatusPages()
@@ -64,6 +70,8 @@ fun Application.module(
     routing {
         healthRoutes(database)
         authRoutes(authService)
-        movieRoutes(movieService)
+        movieRoutes(movieService, ratingService, reactionService)
+        reactionRoutes(reactionService)
+        ratingRoutes(ratingService)
     }
 }

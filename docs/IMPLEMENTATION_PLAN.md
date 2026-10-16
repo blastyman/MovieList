@@ -27,7 +27,9 @@ Phase 5 ✅ (comments under movies: newest first with "load older", author-only 
 one level of replies with @mentions — migration V2 adds `comments.parent_id`) ·
 Phase 6 ✅ (trailers: `/movies/{id}/trailers`, in-app YouTube player with an "Open in YouTube" fallback) ·
 Phase 7 ✅ (search for movies and people, public profiles, own profile with display-name editing;
-migration V3 adds trigram indexes for name search).
+migration V3 adds trigram indexes for name search) ·
+Phase 8 ✅ (friends: requests with auto-accept of crossed requests, accept/decline/cancel/remove, friends screen,
+friendship button on profiles).
 
 ## 1. Required features
 

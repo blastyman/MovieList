@@ -5,7 +5,7 @@ import com.example.movielist.data.model.ErrorResponse
 import com.example.movielist.data.model.LoginRequest
 import com.example.movielist.data.model.RegisterRequest
 import com.example.movielist.data.preferences.DataStoreTokenStore
-import com.example.movielist.data.remote.BackendApi
+import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.domain.model.Account
 import com.example.movielist.domain.model.AuthError
 import com.example.movielist.domain.model.AuthException
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 class BackendAuthRepository(
-    private val api: BackendApi,
+    private val api: AuthApi,
     private val tokenStore: DataStoreTokenStore,
     private val scope: CoroutineScope,
 ) : AuthRepository {

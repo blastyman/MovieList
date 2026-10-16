@@ -8,9 +8,9 @@ import org.junit.Test
 
 class MovieDtoTest {
     @Test
-    fun mapsApiFieldNamesToCamelCaseProperties() {
+    fun mapsBackendFieldsToDomainMovie() {
         val json =
-            """{"id":1,"title":"Title","overview":"Overview","poster_path":"/poster.jpg","genre_ids":[28,35]}"""
+            """{"id":1,"title":"Title","overview":"Overview","posterPath":"/poster.jpg","genreIds":[28,35],"backdropPath":null,"voteAverage":7.5}"""
         val movie = Gson().fromJson(json, MovieDto::class.java).toMovie()
         assertEquals("/poster.jpg", movie.posterPath)
         assertEquals(listOf(28, 35), movie.genreIds)

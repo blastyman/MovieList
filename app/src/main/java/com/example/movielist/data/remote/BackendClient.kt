@@ -11,11 +11,11 @@ object BackendClient {
      * @param onUnauthorized called when the server rejects a token we sent (expired, revoked,
      *   forged), so the app can end the session.
      */
-    fun createApi(
+    fun create(
         baseUrl: String,
         tokenProvider: () -> String?,
         onUnauthorized: () -> Unit,
-    ): BackendApi {
+    ): Retrofit {
         val client =
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
@@ -38,6 +38,5 @@ object BackendClient {
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(BackendApi::class.java)
     }
 }

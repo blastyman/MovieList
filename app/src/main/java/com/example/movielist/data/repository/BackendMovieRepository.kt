@@ -1,7 +1,7 @@
 package com.example.movielist.data.repository
 
-import com.example.movielist.data.model.MovieResponse
-import com.example.movielist.data.remote.TmdbApi
+import com.example.movielist.data.model.MoviePageDto
+import com.example.movielist.data.remote.MovieApi
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.repository.MovieRepository
 import java.io.IOException
@@ -11,7 +11,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import retrofit2.HttpException
 
-class TmdbMovieRepository(private val api: TmdbApi, private val random: Random = Random.Default) :
+/** Loads a few random pages of popular movies from our backend and caches the mix briefly. */
+class BackendMovieRepository(private val api: MovieApi, private val random: Random = Random.Default) :
     MovieRepository {
     private var cachedMovies: List<Movie>? = null
     private var cacheTimestamp = 0L
@@ -49,9 +50,9 @@ class TmdbMovieRepository(private val api: TmdbApi, private val random: Random =
         return result
     }
 
-    private suspend fun loadPage(page: Int): Result<MovieResponse> =
+    private suspend fun loadPage(page: Int): Result<MoviePageDto> =
         try {
-            Result.success(api.getMovies(page = page))
+            Result.success(api.discover(page))
         } catch (exception: IOException) {
             Result.failure(exception)
         } catch (exception: HttpException) {

@@ -3,7 +3,6 @@ package com.example.movielist.ui.home
 import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.domain.repository.MovieRepository
-import com.example.movielist.ui.navigation.AppSection
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,7 +50,7 @@ class HomeViewModelTest {
             assertTrue(viewModel.uiState.isLoading)
             advanceUntilIdle()
             assertFalse(viewModel.uiState.isLoading)
-            assertEquals("Offline", viewModel.uiState.errorMessage)
+            assertEquals("Can't reach the server. Check your connection.", viewModel.uiState.errorMessage)
 
             viewModel.loadMovies()
             advanceUntilIdle()
@@ -132,15 +131,14 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun changingSectionClosesDetails() =
+    fun closingDetailsClearsSelection() =
         runTest(dispatcher) {
             val viewModel = HomeViewModel(MovieRepository { movies })
             advanceUntilIdle()
             viewModel.selectMovie(MovieCategory.POPULAR, movies.first())
             assertNotNull(viewModel.uiState.selectedMovie)
-            viewModel.selectSection(AppSection.LISTS)
+            viewModel.closeDetails()
             assertNull(viewModel.uiState.selectedMovie)
-            assertEquals(AppSection.LISTS, viewModel.uiState.currentSection)
         }
 
     @Test

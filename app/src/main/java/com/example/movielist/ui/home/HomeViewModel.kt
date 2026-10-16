@@ -10,7 +10,7 @@ import com.example.movielist.domain.repository.UserPreferencesRepository
 import com.example.movielist.domain.service.MovieCatalog
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
-import com.example.movielist.ui.navigation.AppSection
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -93,17 +93,15 @@ class HomeViewModel(
 
     private fun Exception.toUserMessage(): String =
         when {
-            this is HttpException && code() == 401 ->
-                "TMDB authentication failed. Check your token."
-            this is HttpException && code() == 429 -> "TMDB rate limit reached. Try again shortly."
-            this is HttpException && code() >= 500 -> "TMDB is temporarily unavailable."
+            // The session is also ended automatically, which brings back the login screen.
+            this is HttpException && code() == 401 -> "Your session expired. Please log in again."
+            this is HttpException && code() == 429 -> "Too many requests. Try again shortly."
+            this is HttpException && code() == 502 -> "The movie database is unavailable right now."
+            this is HttpException && code() >= 500 -> "The server is temporarily unavailable."
+            this is IOException -> "Can't reach the server. Check your connection."
             message.isNullOrBlank() -> "Unable to load movies."
             else -> message.orEmpty()
         }
-
-    fun selectSection(section: AppSection) {
-        _uiState.update { it.copy(currentSection = section, selectedMovie = null) }
-    }
 
     fun selectFilter(filter: MovieListFilter) {
         _uiState.update { it.copy(listFilter = filter) }

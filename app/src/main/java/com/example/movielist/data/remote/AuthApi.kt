@@ -8,8 +8,8 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
-/** Our own server (backend/). The JWT is attached by [BackendClient], not per call. */
-interface BackendApi {
+/** Accounts on our server (backend/). The JWT is attached by [BackendClient], not per call. */
+interface AuthApi {
     @POST("auth/register") suspend fun register(@Body request: RegisterRequest): AuthResponse
 
     @POST("auth/login") suspend fun login(@Body request: LoginRequest): AuthResponse

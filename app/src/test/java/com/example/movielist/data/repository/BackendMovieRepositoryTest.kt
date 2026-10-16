@@ -1,8 +1,8 @@
 package com.example.movielist.data.repository
 
 import com.example.movielist.data.model.MovieDto
-import com.example.movielist.data.model.MovieResponse
-import com.example.movielist.data.remote.TmdbApi
+import com.example.movielist.data.model.MoviePageDto
+import com.example.movielist.data.remote.MovieApi
 import java.io.IOException
 import kotlin.random.Random
 import kotlinx.coroutines.CancellationException
@@ -13,15 +13,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 
-class TmdbMovieRepositoryTest {
+class BackendMovieRepositoryTest {
     @Test
     fun requestsDistinctPagesAndDeduplicatesMovies() = runTest {
         val pages = mutableListOf<Int>()
         val repository =
-            TmdbMovieRepository(
+            BackendMovieRepository(
                 api { page ->
                     pages += page
-                    MovieResponse(listOf(movie(1), movie(page + 100)))
+                    MoviePageDto(results = listOf(movie(1), movie(page + 100)))
                 },
                 Random(1),
             )
@@ -36,10 +36,10 @@ class TmdbMovieRepositoryTest {
     fun keepsSuccessfulPagesWhenOneRequestFails() = runTest {
         var calls = 0
         val repository =
-            TmdbMovieRepository(
+            BackendMovieRepository(
                 api {
                     if (calls++ == 0) throw IOException("Offline")
-                    MovieResponse(listOf(movie(1)))
+                    MoviePageDto(results = listOf(movie(1)))
                 }
             )
         assertEquals(listOf(1), repository.getMovies().map { it.id })
@@ -48,7 +48,7 @@ class TmdbMovieRepositoryTest {
     @Test
     fun propagatesFailureWhenEveryRequestFails() = runTest {
         val failure = IOException("Offline")
-        val repository = TmdbMovieRepository(api { throw failure })
+        val repository = BackendMovieRepository(api { throw failure })
         try {
             repository.getMovies()
             fail("Expected loading to fail")
@@ -62,7 +62,7 @@ class TmdbMovieRepositoryTest {
         var calls = 0
         val cancellation = CancellationException("Cancelled")
         val repository =
-            TmdbMovieRepository(
+            BackendMovieRepository(
                 api {
                     calls++
                     throw cancellation
@@ -79,17 +79,17 @@ class TmdbMovieRepositoryTest {
 
     @Test
     fun successfulEmptyResponsesAreNotErrors() = runTest {
-        assertTrue(TmdbMovieRepository(api { MovieResponse() }).getMovies().isEmpty())
+        assertTrue(BackendMovieRepository(api { MoviePageDto() }).getMovies().isEmpty())
     }
 
     @Test
     fun successfulResultsAreServedFromCache() = runTest {
         var calls = 0
         val repository =
-            TmdbMovieRepository(
+            BackendMovieRepository(
                 api {
                     calls++
-                    MovieResponse(listOf(movie(1)))
+                    MoviePageDto(results = listOf(movie(1)))
                 }
             )
 
@@ -101,9 +101,5 @@ class TmdbMovieRepositoryTest {
 
     private fun movie(id: Int) = MovieDto(id, "Movie $id", "", null, emptyList())
 
-    private fun api(response: suspend (Int) -> MovieResponse): TmdbApi =
-        object : TmdbApi {
-            override suspend fun getMovies(sortBy: String, page: Int): MovieResponse =
-                response(page)
-        }
+    private fun api(response: suspend (Int) -> MoviePageDto): MovieApi = MovieApi { page -> response(page) }
 }

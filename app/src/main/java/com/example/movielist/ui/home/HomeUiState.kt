@@ -6,7 +6,6 @@ import com.example.movielist.domain.model.Movie
 import com.example.movielist.domain.model.MovieCategory
 import com.example.movielist.ui.details.SelectedMovieState
 import com.example.movielist.ui.lists.MovieListFilter
-import com.example.movielist.ui.navigation.AppSection
 
 data class HomeUiState(
     val movies: List<Movie> = emptyList(),
@@ -17,7 +16,6 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val selectedMovie: SelectedMovieState? = null,
-    val currentSection: AppSection = AppSection.HOME,
     val listFilter: MovieListFilter = MovieListFilter.LIKED,
     val matchPopup: Match? = null,
     val matches: List<Match> = emptyList(),

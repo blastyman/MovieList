@@ -5,10 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.preferences.DataStoreUserPreferencesRepository
+import com.example.movielist.data.remote.AuthApi
 import com.example.movielist.data.remote.BackendClient
-import com.example.movielist.data.remote.TmdbClient
+import com.example.movielist.data.remote.MovieApi
 import com.example.movielist.data.repository.BackendAuthRepository
-import com.example.movielist.data.repository.TmdbMovieRepository
+import com.example.movielist.data.repository.BackendMovieRepository
 import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.domain.repository.UserPreferencesRepository
 import com.example.movielist.ui.auth.AuthViewModel
@@ -24,25 +25,26 @@ class AppContainer(context: Context) {
     /** For work that must outlive any single screen, like ending a rejected session. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private val movieRepository = TmdbMovieRepository(TmdbClient.createApi(BuildConfig.TMDB_TOKEN))
-    private val userPreferencesRepository: UserPreferencesRepository =
-        DataStoreUserPreferencesRepository(applicationContext)
-
     private val tokenStore = DataStoreTokenStore(applicationContext)
-    private val backendAuthRepository: BackendAuthRepository by lazy {
-        BackendAuthRepository(
-            api =
-                BackendClient.createApi(
-                    baseUrl = BuildConfig.API_BASE_URL,
-                    tokenProvider = { tokenStore.current },
-                    onUnauthorized = { backendAuthRepository.onTokenRejected() },
-                ),
-            tokenStore = tokenStore,
-            scope = appScope,
+
+    /** One HTTP client for every backend call, so all of them carry the login token. */
+    private val backend by lazy {
+        BackendClient.create(
+            baseUrl = BuildConfig.API_BASE_URL,
+            tokenProvider = { tokenStore.current },
+            onUnauthorized = { backendAuthRepository.onTokenRejected() },
         )
+    }
+
+    private val backendAuthRepository: BackendAuthRepository by lazy {
+        BackendAuthRepository(backend.create(AuthApi::class.java), tokenStore, appScope)
     }
     val authRepository: AuthRepository
         get() = backendAuthRepository
+
+    private val movieRepository by lazy { BackendMovieRepository(backend.create(MovieApi::class.java)) }
+    private val userPreferencesRepository: UserPreferencesRepository =
+        DataStoreUserPreferencesRepository(applicationContext)
 
     fun homeViewModelFactory(): ViewModelProvider.Factory =
         viewModelFactory { HomeViewModel(movieRepository, userPreferencesRepository) }

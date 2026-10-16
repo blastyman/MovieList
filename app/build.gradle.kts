@@ -1,22 +1,7 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
-
-val localProperties =
-    Properties().apply {
-        val propertiesFile = rootProject.file("local.properties")
-        if (propertiesFile.exists()) propertiesFile.inputStream().use { load(it) }
-    }
-val tmdbToken =
-    providers
-        .environmentVariable("TMDB_TOKEN")
-        .orElse(localProperties.getProperty("tmdb.token", ""))
-        .get()
-        .replace("\\", "\\\\")
-        .replace("\"", "\\\"")
 
 android {
     namespace = "com.example.movielist"
@@ -28,7 +13,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "TMDB_TOKEN", "\"$tmdbToken\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -77,6 +61,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.navigation.compose)
 
     // Retrofit
     implementation(libs.retrofit)

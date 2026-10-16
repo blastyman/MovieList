@@ -43,7 +43,8 @@ direct chat per pair. App: chats list with unread badges, chat screen with optim
 typing indicator and an HTTP fallback when the socket is down; "Message" on a friend's profile, a chat button on groups) ·
 Settings ✅ (migration V5: profile photo upload or emoji-on-colour avatar shown everywhere, change name, @handle, email
 and password, delete account; privacy: show me in matches, private likes, who can send friend requests, who can
-message me — all enforced on the server; app settings on the phone: swipe direction, trailer autoplay, match popups).
+message me — all enforced on the server; app settings on the phone: swipe direction, trailer autoplay, match popups;
+migration V6: group icons, a photo or emoji set by the owner, shown on groups, group chats and the chats list).
 
 ## 1. Required features
 

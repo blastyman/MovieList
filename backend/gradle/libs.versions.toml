@@ -1,0 +1,44 @@
+[versions]
+kotlin = "2.4.21"
+ktor = "3.6.0"
+exposed = "1.5.1"
+flyway = "13.10.3"
+hikari = "7.1.0"
+postgresql = "42.7.14"
+logback = "1.6.5"
+embeddedPostgres = "2.2.2"
+embeddedPostgresBinaries = "16.15.0"
+bcrypt = "0.10.2"
+
+[libraries]
+ktor-bom = { group = "io.ktor", name = "ktor-bom", version.ref = "ktor" }
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core" }
+ktor-server-netty = { group = "io.ktor", name = "ktor-server-netty" }
+ktor-server-content-negotiation = { group = "io.ktor", name = "ktor-server-content-negotiation" }
+ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages" }
+ktor-server-call-logging = { group = "io.ktor", name = "ktor-server-call-logging" }
+ktor-server-auth = { group = "io.ktor", name = "ktor-server-auth" }
+ktor-server-auth-jwt = { group = "io.ktor", name = "ktor-server-auth-jwt" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json" }
+ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation" }
+
+exposed-core = { group = "org.jetbrains.exposed", name = "exposed-core", version.ref = "exposed" }
+exposed-jdbc = { group = "org.jetbrains.exposed", name = "exposed-jdbc", version.ref = "exposed" }
+exposed-java-time = { group = "org.jetbrains.exposed", name = "exposed-java-time", version.ref = "exposed" }
+
+flyway-core = { group = "org.flywaydb", name = "flyway-core", version.ref = "flyway" }
+flyway-postgresql = { group = "org.flywaydb", name = "flyway-database-postgresql", version.ref = "flyway" }
+hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
+postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
+logback = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+bcrypt = { group = "at.favre.lib", name = "bcrypt", version.ref = "bcrypt" }
+
+kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlin" }
+embedded-postgres = { group = "io.zonky.test", name = "embedded-postgres", version.ref = "embeddedPostgres" }
+embedded-postgres-binaries-bom = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-bom", version.ref = "embeddedPostgresBinaries" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }

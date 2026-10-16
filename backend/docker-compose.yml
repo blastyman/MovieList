@@ -1,0 +1,21 @@
+# Local development database. Production uses deploy/docker-compose.prod.yml (see docs/SERVER_SETUP.md).
+# Postgres is published on 127.0.0.1 only, so it isn't reachable from your network.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: movielist
+      POSTGRES_USER: movielist
+      POSTGRES_PASSWORD: movielist
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U movielist"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

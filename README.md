@@ -23,17 +23,34 @@ The build supplies it through `BuildConfig`; UI code never handles credentials.
 This keeps credentials out of source control, but a token packaged in a client
 application is still recoverable from its APK.
 
+## Backend
+
+Accounts (and, as the thesis plan progresses, friends, chat, groups, comments and
+ratings) live on our own server in [`backend/`](backend/README.md): Ktor + PostgreSQL.
+The app needs it running to log in. With Docker Desktop running:
+
+```powershell
+cd backend
+docker compose up -d   # local PostgreSQL
+.\gradlew.bat run      # server on http://localhost:8080
+```
+
+Debug builds reach it from the emulator at `http://10.0.2.2:8080/` (`API_BASE_URL` in
+`app/build.gradle.kts`). The roadmap is in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
+and hosting in [docs/SERVER_SETUP.md](docs/SERVER_SETUP.md).
+
 ## Structure
 
-- `data/model`: TMDB response DTOs and conversion to domain models.
+- `data/model`: TMDB and backend DTOs and conversion to domain models.
 - `data/remote`: Retrofit endpoints and HTTP client/authentication configuration.
-- `data/repository`: API-backed loading, partial failure handling, and deduplication.
-- `data/preferences`: DataStore-backed user rating persistence.
-- `domain/model`: immutable movie, user, match, and category models.
-- `domain/repository`: repository contract for loading movies.
+- `data/repository`: API-backed loading, partial failure handling, and deduplication;
+  `BackendAuthRepository` for login/session.
+- `data/preferences`: DataStore-backed user rating persistence and the login token.
+- `domain/model`: immutable movie, user, account, match, and category models.
+- `domain/repository`: repository contracts for movies, ratings and auth.
 - `domain/service`: category grouping and mutual-match calculation.
 - `ui/home`: ViewModel, observable screen state, and home rendering.
-- `ui/details`, `ui/lists`, `ui/matches`, `ui/user`: feature screens.
+- `ui/auth`, `ui/details`, `ui/lists`, `ui/matches`, `ui/user`: feature screens.
 - `ui/components`, `ui/navigation`, `ui/theme`, `ui/utils`: shared presentation code.
 
 Classes use PascalCase, properties and methods use camelCase, and constants use

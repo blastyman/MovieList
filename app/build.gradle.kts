@@ -34,7 +34,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 10.0.2.2 is the host PC as seen from the Android emulator.
+            // On a real phone, use your PC's LAN IP and allow it in src/debug/res/xml.
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            // Set to the VPS domain once it exists (docs/SERVER_SETUP.md).
+            buildConfigField("String", "API_BASE_URL", "\"https://api.example.com/\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

@@ -3,24 +3,61 @@ package com.example.movielist
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.movielist.data.preferences.DataStoreTokenStore
 import com.example.movielist.data.preferences.DataStoreUserPreferencesRepository
+import com.example.movielist.data.remote.BackendClient
 import com.example.movielist.data.remote.TmdbClient
+import com.example.movielist.data.repository.BackendAuthRepository
 import com.example.movielist.data.repository.TmdbMovieRepository
+import com.example.movielist.domain.repository.AuthRepository
 import com.example.movielist.domain.repository.UserPreferencesRepository
+import com.example.movielist.ui.auth.AuthViewModel
 import com.example.movielist.ui.home.HomeViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
+/** One instance per process, owned by [MovieListApp]. */
 class AppContainer(context: Context) {
     private val applicationContext = context.applicationContext
+
+    /** For work that must outlive any single screen, like ending a rejected session. */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     private val movieRepository = TmdbMovieRepository(TmdbClient.createApi(BuildConfig.TMDB_TOKEN))
     private val userPreferencesRepository: UserPreferencesRepository =
         DataStoreUserPreferencesRepository(applicationContext)
 
+    private val tokenStore = DataStoreTokenStore(applicationContext)
+    private val backendAuthRepository: BackendAuthRepository by lazy {
+        BackendAuthRepository(
+            api =
+                BackendClient.createApi(
+                    baseUrl = BuildConfig.API_BASE_URL,
+                    tokenProvider = { tokenStore.current },
+                    onUnauthorized = { backendAuthRepository.onTokenRejected() },
+                ),
+            tokenStore = tokenStore,
+            scope = appScope,
+        )
+    }
+    val authRepository: AuthRepository
+        get() = backendAuthRepository
+
     fun homeViewModelFactory(): ViewModelProvider.Factory =
+        viewModelFactory { HomeViewModel(movieRepository, userPreferencesRepository) }
+
+    fun authViewModelFactory(): ViewModelProvider.Factory =
+        viewModelFactory { AuthViewModel(authRepository) }
+
+    private inline fun <reified VM : ViewModel> viewModelFactory(
+        crossinline create: () -> VM
+    ): ViewModelProvider.Factory =
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                require(modelClass.isAssignableFrom(HomeViewModel::class.java))
+                require(modelClass.isAssignableFrom(VM::class.java))
                 @Suppress("UNCHECKED_CAST")
-                return HomeViewModel(movieRepository, userPreferencesRepository) as T
+                return create() as T
             }
         }
 }

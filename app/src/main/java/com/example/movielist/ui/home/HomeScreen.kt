@@ -32,7 +32,11 @@ import com.example.movielist.ui.user.UserScreen
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(factory: ViewModelProvider.Factory) {
+fun HomeScreen(
+    factory: ViewModelProvider.Factory,
+    accountUsername: String?,
+    onLogout: () -> Unit,
+) {
     val viewModel: HomeViewModel = viewModel(factory = factory)
     val state = viewModel.uiStateFlow.collectAsStateWithLifecycle().value
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -90,6 +94,8 @@ fun HomeScreen(factory: ViewModelProvider.Factory) {
                             AppSection.MATCHES -> MatchesScreen(state.matches, openMenu)
                             AppSection.USER ->
                                 UserScreen(
+                                    accountUsername = accountUsername,
+                                    onLogout = onLogout,
                                     users = state.users,
                                     selectedUserIndex = state.selectedUserIndex,
                                     onUserSelected = viewModel::selectUser,

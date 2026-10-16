@@ -11,4 +11,34 @@
     <string name="match_description">%1$s also likes this.</string>
     <string name="both_like_movie">You and %1$s both like this movie.</string>
     <string name="recommended_for_you">recommended for you</string>
+
+    <!-- Auth -->
+    <string name="auth_welcome_back">welcome back</string>
+    <string name="auth_create_account">create your account</string>
+    <string name="auth_login_field">username or email</string>
+    <string name="auth_username">username</string>
+    <string name="auth_email">email</string>
+    <string name="auth_password">password</string>
+    <string name="auth_show_password">Show password</string>
+    <string name="auth_hide_password">Hide password</string>
+    <string name="auth_log_in">log in</string>
+    <string name="auth_sign_up">sign up</string>
+    <string name="auth_switch_to_register">don\'t have an account? sign up</string>
+    <string name="auth_switch_to_login">already have an account? log in</string>
+    <string name="auth_error_empty_login">Enter your username or email</string>
+    <string name="auth_error_empty_password">Enter your password</string>
+    <string name="auth_error_invalid_username">Username must be 3–30 characters: letters, numbers, \'.\' or \'_\'</string>
+    <string name="auth_error_invalid_email">Enter a valid email address</string>
+    <string name="auth_error_password_too_short">Password must be at least 8 characters</string>
+    <string name="auth_error_password_too_long">Password is too long</string>
+    <string name="auth_error_invalid_credentials">Wrong username/email or password</string>
+    <string name="auth_error_username_taken">That username is already taken</string>
+    <string name="auth_error_email_taken">An account with that email already exists</string>
+    <string name="auth_error_network">Can\'t reach the server. Check your connection.</string>
+    <string name="auth_error_unknown">Something went wrong</string>
+
+    <!-- Account -->
+    <string name="account_signed_in_as">signed in as %1$s</string>
+    <string name="account_log_out">log out</string>
+    <string name="account_demo_users">demo users (for matches)</string>
 </resources>
